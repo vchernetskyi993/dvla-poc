@@ -1,43 +1,20 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeOperators #-}
-
 module Lib
   ( startApp,
     app,
   )
 where
 
+import Api (API)
 import Configuration.Dotenv (defaultConfig, loadFile, onMissingFile)
 import Control.Monad (void)
-import Data.Aeson (defaultOptions)
-import Data.Aeson.TH (deriveJSON)
 import GHC.IO.Handle (BufferMode (LineBuffering))
 import GHC.IO.Handle.FD (stderr, stdout)
-import Network.Wai (Application)
 import Network.Wai.Handler.Warp (defaultSettings, runSettings, setLogger, setPort)
 import Network.Wai.Logger (withStdoutLogger)
-import Servant
-  ( Get,
-    JSON,
-    Proxy (..),
-    Server,
-    serve,
-    type (:>),
-  )
+import Servant (Application, Proxy (..), serve)
+import Server (server)
 import System.Environment (getEnv)
 import System.IO (hSetBuffering)
-
-data User = User
-  { userId :: Int,
-    userFirstName :: String,
-    userLastName :: String
-  }
-  deriving (Eq, Show)
-
-$(deriveJSON defaultOptions ''User)
-
-type API = "users" :> Get '[JSON] [User]
 
 startApp :: IO ()
 startApp = do
@@ -57,12 +34,3 @@ app = serve api server
 
 api :: Proxy API
 api = Proxy
-
-server :: Server API
-server = return users
-
-users :: [User]
-users =
-  [ User 1 "Isaac" "Newton",
-    User 2 "Albert" "Einstein"
-  ]
