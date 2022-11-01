@@ -12,6 +12,8 @@ import Configuration.Dotenv (defaultConfig, loadFile, onMissingFile)
 import Control.Monad (void)
 import Data.Aeson (defaultOptions)
 import Data.Aeson.TH (deriveJSON)
+import GHC.IO.Handle (BufferMode (LineBuffering))
+import GHC.IO.Handle.FD (stderr, stdout)
 import Network.Wai (Application)
 import Network.Wai.Handler.Warp (defaultSettings, runSettings, setLogger, setPort)
 import Network.Wai.Logger (withStdoutLogger)
@@ -24,6 +26,7 @@ import Servant
     type (:>),
   )
 import System.Environment (getEnv)
+import System.IO (hSetBuffering)
 
 data User = User
   { userId :: Int,
@@ -38,6 +41,8 @@ type API = "users" :> Get '[JSON] [User]
 
 startApp :: IO ()
 startApp = do
+  hSetBuffering stdout LineBuffering
+  hSetBuffering stderr LineBuffering
   void $ onMissingFile (loadFile defaultConfig) (return [])
   withStdoutLogger $ \logger -> do
     portStr <- getEnv "SERVER_PORT"
