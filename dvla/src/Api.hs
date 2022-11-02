@@ -11,26 +11,30 @@ import Servant
     JSON,
     Post,
     PostNoContent,
+    Raw,
     ReqBody,
     type (:<|>),
     type (:>),
   )
 
 type API =
-  "invitations" :> Post '[JSON] Invitation
-    :<|> "webhooks"
-      :> "topic"
-      :> Capture "topic" String
-      :> ReqBody '[JSON] Object
-      :> PostNoContent
-    :<|> "messages"
-      :> ReqBody '[JSON] Message
-      :> PostNoContent
-    :<|> "schemas"
-      :> PostNoContent
-    :<|> "licenses"
-      :> ReqBody '[JSON] License
-      :> PostNoContent
+  "api"
+    :> ( "invitations" :> Post '[JSON] Invitation
+           :<|> "webhooks"
+             :> "topic"
+             :> Capture "topic" String
+             :> ReqBody '[JSON] Object
+             :> PostNoContent
+           :<|> "messages"
+             :> ReqBody '[JSON] Message
+             :> PostNoContent
+           :<|> "schemas"
+             :> PostNoContent
+           :<|> "licenses"
+             :> ReqBody '[JSON] License
+             :> PostNoContent
+       )
+    :<|> Raw
 
 newtype Invitation = Invitation
   { url :: String

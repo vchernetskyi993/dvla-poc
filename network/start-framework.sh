@@ -20,7 +20,7 @@ exec aca-py start \
     --outbound-transport http \
     --admin '0.0.0.0' "$ADMIN_PORT" \
     --admin-api-key "$ADMIN_SECRET" \
-    --webhook-url http://"$CONTROLLER_HOST":"$CONTROLLER_PORT"/webhooks \
+    --webhook-url http://"$CONTROLLER_HOST":"$CONTROLLER_PORT"/api/webhooks \
     --genesis-url "https://raw.githubusercontent.com/Indicio-tech/indicio-network/main/genesis_files/pool_transactions_testnet_genesis" \
     --label "$AGENT_LABEL" \
     --wallet-type "askar" \
