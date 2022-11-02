@@ -1,34 +1,47 @@
 {-# LANGUAGE ExplicitNamespaces #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Server (server) where
 
-import Api (API, Invitation (..))
+import Api (API, Invitation (Invitation))
 import Control.Monad.IO.Class (liftIO)
-import Data.Aeson (encode)
-import Data.ByteString.Lazy.Char8 (unpack)
-import Servant (NoContent (..), Server, type (:<|>) (..))
+import Data.Aeson (encode, (.:))
+import Data.Aeson.Types (parseMaybe)
+import Data.ByteString.Lazy.Char8 as BSL (pack, unpack)
+import Data.Maybe (fromJust)
+import FrameworkClient (createInvitation)
+import Servant (Handler, NoContent (NoContent), Server, err500, errBody, throwError, type (:<|>) ((:<|>)))
+import Servant.Client (ClientEnv, runClientM)
 
-server :: Server API
-server =
-  -- TODO: generate invitation
-  return (Invitation "http://my.awesome.url")
+server :: ClientEnv -> Server API
+server client =
+  generateInvitation client
     -- TODO: handle events
     :<|> ( \topic body -> do
-             liftIO (putStrLn ("Topic: " <> topic <> ", body: " <> unpack (encode body)))
+             liftIO $ putStrLn $ "Topic: " <> topic <> ", body: " <> unpack (encode body)
              return NoContent
          )
     -- TODO: send message
     :<|> ( \message -> do
-             liftIO (putStrLn ("Sending: " <> unpack (encode message)))
+             liftIO $ putStrLn $ "Sending: " <> unpack (encode message)
              return NoContent
          )
     -- TODO: generate schema
     :<|> ( do
-             liftIO (putStrLn "Generating driver license schema...")
+             liftIO $ putStrLn "Generating driver license schema..."
              return NoContent
          )
     -- TODO: issue driver license
     :<|> ( \license -> do
-             liftIO (putStrLn ("Issuing license: " <> unpack (encode license)))
+             liftIO $ putStrLn $ "Issuing license: " <> unpack (encode license)
              return NoContent
          )
+
+generateInvitation :: ClientEnv -> Handler Invitation
+generateInvitation client = do
+  result <- liftIO $ runClientM createInvitation client
+  case result of
+    (Left err) -> throwError err500 {errBody = BSL.pack $ show err}
+    (Right obj) -> do
+      let url = fromJust $ parseMaybe (.: "invitation_url") obj :: String
+      return (Invitation url)

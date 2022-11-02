@@ -1,3 +1,4 @@
+# TODO: use alpine for build
 FROM haskell:9.2.4 as build
 
 RUN mkdir /project

@@ -23,6 +23,8 @@ dependencies:
 - aeson
 - bytestring
 - dotenv
+- http-client
+- servant-client
 - servant-server
 - time
 - wai

@@ -1,0 +1,8 @@
+FROM bcgovimages/aries-cloudagent:py36-1.16-1_0.7.5
+
+USER root
+
+RUN apt-get update
+RUN apt-get install -y jq
+
+USER indy
