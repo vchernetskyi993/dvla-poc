@@ -8,9 +8,9 @@ module FrameworkClient
   )
 where
 
+import Config (FrameworkClientConfig (port), host, secret)
 import Data.Aeson (Object)
 import Data.ByteString.Char8 (pack)
-import Data.Functor ((<&>))
 import Network.HTTP.Client
   ( defaultManagerSettings,
     managerModifyRequest,
@@ -26,7 +26,6 @@ import Servant.Client
     client,
     mkClientEnv,
   )
-import System.Environment (getEnv)
 
 type API =
   "connections" :> "create-invitation" :> Post '[JSON] Object
@@ -37,18 +36,19 @@ api = Proxy
 createInvitation :: ClientM Object
 createInvitation = client api
 
-createFrameworkClient :: IO ClientEnv
-createFrameworkClient = do
+createFrameworkClient :: FrameworkClientConfig -> IO ClientEnv
+createFrameworkClient config = do
   manager <-
     newManager
       defaultManagerSettings
         { managerModifyRequest = \req ->
-            getEnv "FRAMEWORK_SECRET" <&> \apiKey ->
+            return
               req
                 { requestHeaders =
-                    ("X-API-KEY", pack apiKey) : requestHeaders req
+                    ("X-API-KEY", pack $ secret config) : requestHeaders req
                 }
         }
-  host <- getEnv "FRAMEWORK_HOST"
-  port <- getEnv "FRAMEWORK_PORT"
-  return $ mkClientEnv manager (BaseUrl Http host (read port) "")
+  return $
+    mkClientEnv
+      manager
+      (BaseUrl Http (host config) (port config) "")

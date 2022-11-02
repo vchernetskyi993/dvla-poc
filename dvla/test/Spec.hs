@@ -9,6 +9,7 @@ import Test.Hspec.Wai
 main :: IO ()
 main = hspec spec
 
+-- TODO: write tests
 spec :: Spec
 spec = with (return app) $ do
     describe "GET /users" $ do
