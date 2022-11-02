@@ -26,7 +26,8 @@ exec aca-py start \
     --wallet-type "askar" \
     --wallet-name "$WALLET_NAME" \
     --wallet-key "$WALLET_KEY" \
-    --auto-provision
+    --auto-provision \
+    --auto-accept-requests
 
 # agent-docker
 
@@ -65,5 +66,4 @@ exec aca-py start \
 # "--tails-server-base-url",
 # "http://4f3e-156-146-50-1.ngrok.io",
 # "--auto-accept-invites",
-# "--auto-accept-requests",
 # "--auto-store-credential"
