@@ -17,9 +17,11 @@ function App() {
       <div>
         <button onClick={createInvitation}>Generate Invitation</button>
       </div>
-      <div style={{ padding: "16px" }}>
-        <QRCode value={url} size={512} />
-      </div>
+      {url && (
+        <div style={{ padding: "16px" }}>
+          <QRCode value={url} size={512} />
+        </div>
+      )}
     </div>
   );
 }

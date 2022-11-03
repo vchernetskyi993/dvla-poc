@@ -22,23 +22,20 @@ Players:
 
 ## Local setup
 
-1. Start [von-network](https://github.com/bcgov/von-network/blob/main/docs/UsingVONNetwork.md) using their instructions.
+1. Set environment variables in `.env` file. See instructions for each variable there.
 
-2. Set environment variables in `.env` file. See instructions for each variable there.
+2. Start DVLA network: `docker compose up`.
 
-3. Start DVLA network: `docker compose up`.
-
-4. Connect Alice mobile device to DVLA network:
-
-```shell
-curl localhost:4040/api/tunnels | jq '.tunnels | map({service: .name, url: .public_url})'
-```
-
-<!-- TODO: Alice steps -->
+3. Connect Alice mobile device to DVLA network. Theoretically should work with different mobile agents, 
+but was actually tested with Aries Bifold agent. Follow instructions for Aries Bifold setup in their [repo](https://github.com/hyperledger/aries-mobile-agent-react-native).
+   - Use Indicio Testnet and Indicio public mediator
 
 ## Usage
 
-<!-- TODO: describe happy pass flow -->
+1. Go to DVLA UI on `localhost:8002`. Generate Invitation and scan QR with Aries Bifold.
+
+2. At this point you can send messages between Bifold and DVLA.  
+   * In Bifold go to contacts, newest contact should be `DVLA Agent`. Send some message.
 
 ## TODOs:
 

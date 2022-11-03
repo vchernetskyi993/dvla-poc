@@ -23,9 +23,8 @@ services:
       - FRAMEWORK_PORT=8000
       - ADMIN_PORT=8001
       - ADMIN_SECRET=${DVLA_ADMIN_SECRET}
-      # TODO: set to container name
-      - CONTROLLER_HOST=172.17.0.1
-      - CONTROLLER_PORT=8080
+      - CONTROLLER_HOST=controller.dvla
+      - CONTROLLER_PORT=8002
       - WALLET_NAME=${DVLA_WALLET_NAME}
       - WALLET_KEY=${DVLA_WALLET_KEY}
     ports:
@@ -35,3 +34,14 @@ services:
       - ./network/start-framework.sh:/scripts/start-framework.sh
     depends_on:
       - ngrok
+
+  controller.dvla:
+    build:
+      context: dvla
+    environment:
+      - SERVER_PORT=8002
+      - FRAMEWORK_HOST=framework.dvla
+      - FRAMEWORK_PORT=8001
+      - FRAMEWORK_SECRET=${DVLA_ADMIN_SECRET}
+    ports:
+      - "8002:8002"
