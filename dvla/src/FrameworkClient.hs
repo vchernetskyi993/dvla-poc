@@ -5,6 +5,7 @@
 module FrameworkClient
   ( createFrameworkClient,
     createInvitation,
+    getConnections,
   )
 where
 
@@ -17,7 +18,7 @@ import Network.HTTP.Client
     newManager,
     requestHeaders,
   )
-import Servant (JSON, Post, Proxy (..), type (:>))
+import Servant (Get, JSON, Post, Proxy (..), type (:<|>) ((:<|>)), type (:>))
 import Servant.Client
   ( BaseUrl (BaseUrl),
     ClientEnv,
@@ -28,13 +29,17 @@ import Servant.Client
   )
 
 type API =
-  "connections" :> "create-invitation" :> Post '[JSON] Object
+  "connections"
+    :> ( "create-invitation" :> Post '[JSON] Object
+           :<|> Get '[JSON] Object
+       )
 
 api :: Proxy API
 api = Proxy
 
+getConnections :: ClientM Object
 createInvitation :: ClientM Object
-createInvitation = client api
+(createInvitation :<|> getConnections) = client api
 
 createFrameworkClient :: FrameworkClientConfig -> IO ClientEnv
 createFrameworkClient config = do

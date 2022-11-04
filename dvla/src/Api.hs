@@ -1,13 +1,15 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE TypeOperators #-}
 
-module Api (API, Invitation (..)) where
+module Api (API, Invitation (..), Connections (..), Connection (..)) where
 
 import Data.Aeson (FromJSON, Object, ToJSON)
 import GHC.Generics (Generic)
 import Servant
   ( Capture,
+    Get,
     JSON,
     Post,
     PostNoContent,
@@ -25,6 +27,8 @@ type API =
              :> Capture "topic" String
              :> ReqBody '[JSON] Object
              :> PostNoContent
+            --  TODO: return filtered connections
+           :<|> "connections" :> Get '[JSON] Object
            :<|> "messages"
              :> ReqBody '[JSON] Message
              :> PostNoContent
@@ -42,6 +46,21 @@ newtype Invitation = Invitation
   deriving (Eq, Show, Generic)
 
 instance ToJSON Invitation
+
+newtype Connections = Connections
+  { results :: [Connection]
+  }
+  deriving (Eq, Show, Generic)
+
+instance ToJSON Connections
+
+data Connection = Connection
+  { connectionId :: String,
+    name :: String
+  }
+  deriving (Eq, Show, Generic)
+
+instance ToJSON Connection
 
 data Message = Message
   { connectionId :: String,

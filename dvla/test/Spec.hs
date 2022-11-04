@@ -38,12 +38,12 @@ spec =
 
         describe "GET /api/connections" $
           it "should get active connections" $
-            get "/api/invitations"
+            get "/api/connections"
               `shouldRespondWith` [json|{
                 results: [
                   {
                     name: "Bob",
-                    id: "8765431234"
+                    connectionId: "8765431234"
                   }
                 ]
               }|]
