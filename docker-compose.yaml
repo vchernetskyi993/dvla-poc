@@ -12,8 +12,6 @@ services:
     volumes:
       - ./network/ngrok.yml:/etc/ngrok.yml
 
-  # TODO: add postgres storage
-
   framework.dvla:
     build:
       dockerfile: ./network/Dockerfile.framework

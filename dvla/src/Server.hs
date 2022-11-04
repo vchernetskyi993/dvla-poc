@@ -30,6 +30,7 @@ server client =
                liftIO $ putStrLn $ "Topic: " <> topic <> ", body: " <> unpack (encode body)
                return NoContent
            )
+      -- TODO: list connections
       -- TODO: send message
       :<|> ( \message -> do
                liftIO $ putStrLn $ "Sending: " <> unpack (encode message)

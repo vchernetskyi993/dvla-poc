@@ -1,20 +1,48 @@
-{-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE TupleSections #-}
+
 module Main (main) where
 
+import Control.Concurrent (forkIO, killThread)
+import Control.Exception (bracket)
 import Lib (app)
+import Network.Wai (Application)
+import Spec.Framework (clientConfig, runServer)
+import Spec.Util (getFreePort)
 import Test.Hspec
-import Test.Hspec.Wai
+  ( ActionWith,
+    Spec,
+    aroundAllWith,
+    beforeAll,
+    describe,
+    hspec,
+    it,
+  )
+import Test.Hspec.Wai (post, shouldRespondWith)
+import Test.Hspec.Wai.JSON (json)
 
 main :: IO ()
 main = hspec spec
 
--- TODO: write tests
 spec :: Spec
-spec = with (return app) $ do
-    describe "GET /users" $ do
-        it "responds with 200" $ do
-            get "/users" `shouldRespondWith` 200
-        it "responds with [User]" $ do
-            let users = "[{\"userId\":1,\"userFirstName\":\"Isaac\",\"userLastName\":\"Newton\"},{\"userId\":2,\"userFirstName\":\"Albert\",\"userLastName\":\"Einstein\"}]"
-            get "/users" `shouldRespondWith` users
+spec =
+  beforeAll getFreePort $
+    aroundAllWith withFramework $
+      aroundAllWith withApplication $
+        describe "POST /api/invitations" $
+          it "should create invitation" $
+            post "/api/invitations" "" `shouldRespondWith` [json|{url: "my-url"}|]
+
+withFramework :: ActionWith Int -> ActionWith Int
+withFramework action port =
+  bracket
+    (forkIO $ runServer port)
+    ( \threadId -> do
+        putStrLn "Stopping framework..."
+        killThread threadId
+    )
+    (const $ action port)
+
+withApplication :: ActionWith ((), Application) -> ActionWith Int
+withApplication action port = app (clientConfig port) >>= action . ((),)

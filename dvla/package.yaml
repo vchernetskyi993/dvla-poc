@@ -72,3 +72,4 @@ tests:
     - hspec-wai
     - hspec-wai-json
     - aeson
+    - network
