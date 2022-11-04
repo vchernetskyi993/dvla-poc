@@ -6,6 +6,7 @@ module Main (main) where
 
 import Control.Concurrent (forkIO, killThread)
 import Control.Exception (bracket)
+import Data.Functor ((<&>))
 import Lib (app)
 import Network.Wai (Application)
 import Spec.Framework (clientConfig, runServer)
@@ -15,6 +16,7 @@ import Test.Hspec
     Spec,
     aroundAllWith,
     beforeAll,
+    beforeAllWith,
     describe,
     hspec,
     it,
@@ -29,7 +31,7 @@ spec :: Spec
 spec =
   beforeAll getFreePort $
     aroundAllWith withFramework $
-      aroundAllWith withApplication $
+      beforeAllWith withApplication $
         describe "POST /api/invitations" $
           it "should create invitation" $
             post "/api/invitations" "" `shouldRespondWith` [json|{url: "my-url"}|]
@@ -44,5 +46,5 @@ withFramework action port =
     )
     (const $ action port)
 
-withApplication :: ActionWith ((), Application) -> ActionWith Int
-withApplication action port = app (clientConfig port) >>= action . ((),)
+withApplication :: Int -> IO ((), Application)
+withApplication port = app (clientConfig port) <&> ((),)
