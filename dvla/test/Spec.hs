@@ -21,7 +21,7 @@ import Test.Hspec
     hspec,
     it,
   )
-import Test.Hspec.Wai (post, shouldRespondWith)
+import Test.Hspec.Wai (get, post, shouldRespondWith)
 import Test.Hspec.Wai.JSON (json)
 
 main :: IO ()
@@ -31,10 +31,22 @@ spec :: Spec
 spec =
   beforeAll getFreePort $
     aroundAllWith withFramework $
-      beforeAllWith withApplication $
+      beforeAllWith withApplication $ do
         describe "POST /api/invitations" $
           it "should create invitation" $
             post "/api/invitations" "" `shouldRespondWith` [json|{url: "my-url"}|]
+
+        describe "GET /api/connections" $
+          it "should get active connections" $
+            get "/api/invitations"
+              `shouldRespondWith` [json|{
+                results: [
+                  {
+                    name: "Bob",
+                    id: "8765431234"
+                  }
+                ]
+              }|]
 
 withFramework :: ActionWith Int -> ActionWith Int
 withFramework action port =
