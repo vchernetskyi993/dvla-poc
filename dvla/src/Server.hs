@@ -1,15 +1,19 @@
 {-# LANGUAGE ExplicitNamespaces #-}
+{-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Server (server) where
 
-import Api (API, Invitation (Invitation))
+import Api (API, ConnectionDto (ConnectionDto), Invitation (Invitation), Results, connectionId, name)
+import Control.Monad (mfilter)
 import Control.Monad.IO.Class (liftIO)
-import Data.Aeson (Object, encode, (.:))
+import Data.Aeson (encode, (.:))
 import Data.Aeson.Types (parseMaybe)
 import Data.ByteString.Lazy.Char8 as BSL (pack, unpack)
+import Data.Functor ((<&>))
 import Data.Maybe (fromJust)
-import FrameworkClient (createInvitation, getConnections)
+import FrameworkClient (Connection (state), ConnectionState (Active), createInvitation, getConnections)
+import FrameworkClient qualified as FC (Connection (connectionId, name))
 import Servant
   ( Handler,
     NoContent (NoContent),
@@ -55,9 +59,15 @@ generateInvitation client = do
   let url = fromJust $ parseMaybe (.: "invitation_url") result :: String
   return (Invitation url)
 
-fetchConnections :: ClientEnv -> Handler Object
+fetchConnections :: ClientEnv -> Handler (Results ConnectionDto)
 fetchConnections client = do
-  performFrameworkRequest client getConnections
+  performFrameworkRequest client $
+    getConnections
+      <&> mfilter ((== Active) . state)
+      <&> fmap toConnectionDto
+
+toConnectionDto :: Connection -> ConnectionDto
+toConnectionDto c = ConnectionDto {connectionId = FC.connectionId c, name = FC.name c}
 
 performFrameworkRequest :: ClientEnv -> ClientM a -> Handler a
 performFrameworkRequest client request =

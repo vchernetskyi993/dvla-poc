@@ -1,11 +1,17 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DuplicateRecordFields #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE TypeOperators #-}
 
-module Api (API, Invitation (..), Connections (..), Connection (..)) where
+module Api (API, Invitation (..), Results (..), ConnectionDto (..)) where
 
+import Control.Applicative (Alternative (empty))
+import Control.Monad (MonadPlus, join)
 import Data.Aeson (FromJSON, Object, ToJSON)
+import Data.Functor ((<&>))
+import GHC.Base (Alternative ((<|>)))
 import GHC.Generics (Generic)
 import Servant
   ( Capture,
@@ -27,8 +33,7 @@ type API =
              :> Capture "topic" String
              :> ReqBody '[JSON] Object
              :> PostNoContent
-            --  TODO: return filtered connections
-           :<|> "connections" :> Get '[JSON] Object
+           :<|> "connections" :> Get '[JSON] (Results ConnectionDto)
            :<|> "messages"
              :> ReqBody '[JSON] Message
              :> PostNoContent
@@ -47,20 +52,42 @@ newtype Invitation = Invitation
 
 instance ToJSON Invitation
 
-newtype Connections = Connections
-  { results :: [Connection]
+newtype Results a = Results
+  { results :: [a]
   }
   deriving (Eq, Show, Generic)
 
-instance ToJSON Connections
+instance ToJSON (Results ConnectionDto)
 
-data Connection = Connection
+instance Functor Results where
+  fmap :: (a -> b) -> Results a -> Results b
+  fmap f a = Results $ results a <&> f
+
+instance Applicative Results where
+  pure :: a -> Results a
+  pure = Results . pure
+  (<*>) :: Results (a -> b) -> Results a -> Results b
+  (<*>) (Results f) (Results a) = Results $ f <*> a
+
+instance Monad Results where
+  (>>=) :: Results a -> (a -> Results b) -> Results b
+  (>>=) (Results a) f = Results $ join $ a <&> f <&> results
+
+instance Alternative Results where
+  empty :: Results a
+  empty = Results []
+  (<|>) :: Results a -> Results a -> Results a
+  (<|>) (Results a) (Results b) = Results $ a <|> b
+
+instance MonadPlus Results
+
+data ConnectionDto = ConnectionDto
   { connectionId :: String,
     name :: String
   }
   deriving (Eq, Show, Generic)
 
-instance ToJSON Connection
+instance ToJSON ConnectionDto
 
 data Message = Message
   { connectionId :: String,
