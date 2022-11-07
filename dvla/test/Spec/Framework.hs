@@ -1,27 +1,36 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 
-module Spec.Framework (clientConfig, server, runServer) where
+module Spec.Framework (clientConfig, server, runServer, getReceivedMessage) where
 
 import Config (FrameworkClientConfig (FrameworkClientConfig, host, port, secret))
 import Control.Monad (when)
-import Data.Aeson (Object, Value (Array, Object))
+import Control.Monad.IO.Class (liftIO)
+import Data.Aeson (FromJSON, Object, Value (Array, Object))
 import Data.Aeson.Key (Key)
 import Data.Aeson.KeyMap as KeyMap (fromList, singleton)
 import Data.ByteString.Char8 (unpack)
 import Data.Vector qualified as Vector (fromList)
+import GHC.Conc (atomically)
+import GHC.Generics (Generic)
 import Network.Wai (Request (requestHeaders))
 import Network.Wai.Handler.Warp qualified as Warp
 import Servant
   ( AuthProtect,
+    Capture,
     Context (EmptyContext, (:.)),
     Get,
+    Handler,
     JSON,
+    NoContent (NoContent),
     Post,
+    PostNoContent,
     Proxy (Proxy),
+    ReqBody,
     Server,
     err401,
     errBody,
@@ -31,6 +40,7 @@ import Servant
     type (:>),
   )
 import Servant.Server.Experimental.Auth (AuthHandler, AuthServerData, mkAuthHandler)
+import StmContainers.Map as StmMap (Map, insert, lookup, newIO)
 
 adminSecret :: String
 adminSecret = "admin-secret"
@@ -49,7 +59,15 @@ type API =
     :> ( Get '[JSON] Object
            :<|> "create-invitation"
              :> Post '[JSON] Object
+           :<|> Capture "connectionId" String
+             :> "send-message"
+             :> ReqBody '[JSON] Message
+             :> PostNoContent
        )
+
+newtype Message = Message {content :: String} deriving (Eq, Show, Generic)
+
+instance FromJSON Message
 
 asAesonObject :: [(Key, Value)] -> Value
 asAesonObject = Object . KeyMap.fromList
@@ -75,6 +93,21 @@ server () =
         )
     )
     :<|> return (singleton "invitation_url" "my-url")
+    :<|> saveMessage
+
+messages :: IO (Map String String)
+messages = newIO
+
+saveMessage :: String -> Message -> Handler NoContent
+saveMessage connection (Message text) = do
+  existingMessages <- liftIO messages
+  liftIO $ atomically $ insert text connection existingMessages
+  return NoContent
+
+getReceivedMessage :: String -> IO (Maybe String)
+getReceivedMessage connection = do
+  existingMessages <- messages
+  atomically $ StmMap.lookup connection existingMessages
 
 runServer :: Int -> IO ()
 runServer frameworkPort = do
@@ -89,7 +122,7 @@ runServer frameworkPort = do
 
 authHandler :: AuthHandler Request ()
 authHandler = mkAuthHandler $ \req -> do
-  case lookup "X-API-KEY" $ requestHeaders req of
+  case Prelude.lookup "X-API-KEY" $ requestHeaders req of
     Nothing -> throwError err401 {errBody = "X-API-KEY header is required"}
     Just apiKey ->
       when (unpack apiKey /= adminSecret) $

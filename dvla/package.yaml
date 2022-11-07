@@ -71,6 +71,9 @@ tests:
     - hspec
     - hspec-wai
     - hspec-wai-json
+    - http-types
     - aeson
     - network
+    - stm-containers
     - vector
+    - uuid
