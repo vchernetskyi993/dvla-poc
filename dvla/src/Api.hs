@@ -5,7 +5,14 @@
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE TypeOperators #-}
 
-module Api (API, Invitation (..), Results (..), ConnectionDto (..)) where
+module Api
+  ( API,
+    Invitation (..),
+    Results (..),
+    ConnectionDto (..),
+    Message (..),
+  )
+where
 
 import Control.Applicative (Alternative (empty))
 import Control.Monad (MonadPlus, join)

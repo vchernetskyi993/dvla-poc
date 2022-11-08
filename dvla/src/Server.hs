@@ -1,19 +1,33 @@
+{-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE ExplicitNamespaces #-}
-{-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Server (server) where
 
-import Api (API, ConnectionDto (ConnectionDto), Invitation (Invitation), Results, connectionId, name)
+import Api
+  ( API,
+    ConnectionDto (ConnectionDto, connectionId),
+    Invitation (Invitation),
+    Message (Message, connectionId),
+    Results,
+    name,
+    text,
+  )
 import Control.Monad (mfilter)
 import Control.Monad.IO.Class (liftIO)
 import Data.Aeson (encode, (.:))
 import Data.Aeson.Types (parseMaybe)
 import Data.ByteString.Lazy.Char8 as BSL (pack, unpack)
-import Data.Functor ((<&>))
+import Data.Functor (void, (<&>))
 import Data.Maybe (fromJust)
-import FrameworkClient (Connection (state), ConnectionState (Active), createInvitation, getConnections)
-import FrameworkClient qualified as FC (Connection (connectionId, name))
+import FrameworkClient
+  ( Connection (connectionId, name, state),
+    ConnectionState (Active),
+    SendMessageBody (SendMessageBody, content),
+    createInvitation,
+    getConnections,
+    sendMessage,
+  )
 import Servant
   ( Handler,
     NoContent (NoContent),
@@ -34,11 +48,7 @@ server client =
                return NoContent
            )
       :<|> fetchConnections client
-      -- TODO: send message
-      :<|> ( \message -> do
-               liftIO $ putStrLn $ "Sending: " <> unpack (encode message)
-               return NoContent
-           )
+      :<|> sendMessage' client
       -- TODO: generate schema
       :<|> ( do
                liftIO $ putStrLn "Generating driver license schema..."
@@ -67,7 +77,19 @@ fetchConnections client = do
       <&> fmap toConnectionDto
 
 toConnectionDto :: Connection -> ConnectionDto
-toConnectionDto c = ConnectionDto {connectionId = FC.connectionId c, name = FC.name c}
+toConnectionDto c =
+  ConnectionDto
+    { Api.connectionId = FrameworkClient.connectionId c,
+      Api.name = FrameworkClient.name c
+    }
+
+sendMessage' :: ClientEnv -> Message -> Handler NoContent
+sendMessage' client Message {connectionId = cid, text = message} = do
+  void $
+    performFrameworkRequest client $
+      sendMessage cid $
+        SendMessageBody {content = message}
+  return NoContent
 
 performFrameworkRequest :: ClientEnv -> ClientM a -> Handler a
 performFrameworkRequest client request =

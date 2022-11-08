@@ -5,6 +5,7 @@
 module Main (main) where
 
 import Control.Concurrent (forkIO, killThread)
+import Control.Concurrent.Map (empty)
 import Control.Exception (bracket)
 import Control.Monad.IO.Class (liftIO)
 import Data.Functor ((<&>))
@@ -13,7 +14,7 @@ import Lib (app)
 import Network.HTTP.Types (methodPost)
 import Network.HTTP.Types.Header (hContentType)
 import Network.Wai (Application)
-import Spec.Framework (clientConfig, runServer, getReceivedMessage)
+import Spec.Framework (State (State), clientConfig, getReceivedMessage, runServer)
 import Spec.Util (getFreePort)
 import Test.Hspec
   ( ActionWith,
@@ -23,9 +24,10 @@ import Test.Hspec
     beforeAllWith,
     describe,
     hspec,
-    it, shouldBe,
+    it,
+    shouldBe,
   )
-import Test.Hspec.Wai (get, post, request, shouldRespondWith)
+import Test.Hspec.Wai (get, post, request, shouldRespondWith, getState)
 import Test.Hspec.Wai.JSON (json)
 
 main :: IO ()
@@ -34,16 +36,17 @@ main = hspec spec
 spec :: Spec
 spec =
   beforeAll getFreePort $
-    aroundAllWith withFramework $
-      beforeAllWith withApplication $ do
-        describe "POST /api/invitations" $
-          it "should create invitation" $
-            post "/api/invitations" "" `shouldRespondWith` [json|{url: "my-url"}|]
+    beforeAllWith initialState $
+      aroundAllWith withFramework $
+        beforeAllWith withApplication $ do
+          describe "POST /api/invitations" $
+            it "should create invitation" $
+              post "/api/invitations" "" `shouldRespondWith` [json|{url: "my-url"}|]
 
-        describe "GET /api/connections" $
-          it "should get active connections" $
-            get "/api/connections"
-              `shouldRespondWith` [json|{
+          describe "GET /api/connections" $
+            it "should get active connections" $
+              get "/api/connections"
+                `shouldRespondWith` [json|{
                 results: [
                   {
                     name: "Bob",
@@ -52,33 +55,37 @@ spec =
                 ]
               }|]
 
-        describe "POST /api/messages" $
-          it "should send message" $ do
-            -- given
-            guid <- liftIO nextRandom
-            message <- liftIO nextRandom
+          describe "POST /api/messages" $
+            it "should send message" $ do
+              -- given
+              guid <- liftIO nextRandom
+              message <- liftIO nextRandom
 
-            -- when
-            request
-              methodPost
-              "/api/messages"
-              [(hContentType, "application/json")]
-              [json|{connectionId: #{guid}, text: #{message}}|]
-              `shouldRespondWith` 204
+              -- when
+              request
+                methodPost
+                "/api/messages"
+                [(hContentType, "application/json")]
+                [json|{connectionId: #{guid}, text: #{message}}|]
+                `shouldRespondWith` 204
 
-            -- then
-            receivedMessage <- liftIO $ getReceivedMessage $ show guid
-            liftIO $ receivedMessage `shouldBe` Just (show message)
+              -- then
+              state <- getState
+              receivedMessage <- liftIO $ getReceivedMessage state $ show guid
+              liftIO $ receivedMessage `shouldBe` Just (show message)
 
-withFramework :: ActionWith Int -> ActionWith Int
-withFramework action port =
+withFramework :: ActionWith (Int, State) -> ActionWith (Int, State)
+withFramework action (port, state) =
   bracket
-    (forkIO $ runServer port)
+    (forkIO $ runServer port state)
     ( \threadId -> do
         putStrLn "Stopping framework..."
         killThread threadId
     )
-    (const $ action port)
+    (const $ action (port, state))
 
-withApplication :: Int -> IO ((), Application)
-withApplication port = app (clientConfig port) <&> ((),)
+withApplication :: (Int, State) -> IO (State, Application)
+withApplication (port, state) = app (clientConfig port) <&> (state,)
+
+initialState :: Int -> IO (Int, State)
+initialState port = empty <&> State <&> (port,)

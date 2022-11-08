@@ -67,6 +67,7 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - base
+    - ctrie
     - dvla
     - hspec
     - hspec-wai
@@ -74,6 +75,5 @@ tests:
     - http-types
     - aeson
     - network
-    - stm-containers
     - vector
     - uuid

@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -10,6 +11,8 @@ module FrameworkClient
     getConnections,
     Connection (..),
     ConnectionState (..),
+    sendMessage,
+    SendMessageBody (..),
   )
 where
 
@@ -18,6 +21,7 @@ import Config (FrameworkClientConfig (port), host, secret)
 import Data.Aeson
   ( FromJSON (parseJSON),
     Object,
+    ToJSON,
     Value,
     withObject,
     (.:),
@@ -25,13 +29,25 @@ import Data.Aeson
 import Data.Aeson.Types (Parser)
 import Data.ByteString.Char8 (pack)
 import Data.String (IsString (fromString))
+import GHC.Generics (Generic)
 import Network.HTTP.Client
   ( defaultManagerSettings,
     managerModifyRequest,
     newManager,
     requestHeaders,
   )
-import Servant (Get, JSON, Post, Proxy (..), type (:<|>) ((:<|>)), type (:>))
+import Servant
+  ( Capture,
+    Get,
+    JSON,
+    NoContent,
+    Post,
+    PostNoContent,
+    Proxy (..),
+    ReqBody,
+    type (:<|>) ((:<|>)),
+    type (:>),
+  )
 import Servant.Client
   ( BaseUrl (BaseUrl),
     ClientEnv,
@@ -45,7 +61,18 @@ type API =
   "connections"
     :> ( "create-invitation" :> Post '[JSON] Object
            :<|> Get '[JSON] (Results Connection)
+           :<|> Capture "connectionId" String
+             :> "send-message"
+             :> ReqBody '[JSON] SendMessageBody
+             :> PostNoContent
        )
+
+newtype SendMessageBody = SendMessageBody
+  { content :: String
+  }
+  deriving (Eq, Show, Generic)
+
+instance ToJSON SendMessageBody
 
 data ConnectionState = Active | Other deriving (Eq, Show)
 
@@ -81,7 +108,8 @@ api = Proxy
 
 createInvitation :: ClientM Object
 getConnections :: ClientM (Results Connection)
-(createInvitation :<|> getConnections) = client api
+sendMessage :: String -> SendMessageBody -> ClientM NoContent
+(createInvitation :<|> getConnections :<|> sendMessage) = client api
 
 createFrameworkClient :: FrameworkClientConfig -> IO ClientEnv
 createFrameworkClient config = do

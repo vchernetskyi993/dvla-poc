@@ -5,17 +5,25 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 
-module Spec.Framework (clientConfig, server, runServer, getReceivedMessage) where
+module Spec.Framework
+  ( clientConfig,
+    server,
+    runServer,
+    getReceivedMessage,
+    State (..),
+  )
+where
 
 import Config (FrameworkClientConfig (FrameworkClientConfig, host, port, secret))
+import Control.Concurrent.Map as CMap (Map, insert, lookup)
 import Control.Monad (when)
 import Control.Monad.IO.Class (liftIO)
 import Data.Aeson (FromJSON, Object, Value (Array, Object))
 import Data.Aeson.Key (Key)
 import Data.Aeson.KeyMap as KeyMap (fromList, singleton)
 import Data.ByteString.Char8 (unpack)
+import Data.Functor (void)
 import Data.Vector qualified as Vector (fromList)
-import GHC.Conc (atomically)
 import GHC.Generics (Generic)
 import Network.Wai (Request (requestHeaders))
 import Network.Wai.Handler.Warp qualified as Warp
@@ -40,7 +48,6 @@ import Servant
     type (:>),
   )
 import Servant.Server.Experimental.Auth (AuthHandler, AuthServerData, mkAuthHandler)
-import StmContainers.Map as StmMap (Map, insert, lookup, newIO)
 
 adminSecret :: String
 adminSecret = "admin-secret"
@@ -52,6 +59,8 @@ clientConfig frameworkPort =
       port = frameworkPort,
       secret = adminSecret
     }
+
+newtype State = State {messages :: Map String String}
 
 type API =
   AuthProtect "api-key-auth"
@@ -72,8 +81,8 @@ instance FromJSON Message
 asAesonObject :: [(Key, Value)] -> Value
 asAesonObject = Object . KeyMap.fromList
 
-server :: Server API
-server () =
+server :: State -> Server API
+server state () =
   return
     ( singleton
         "results"
@@ -93,31 +102,33 @@ server () =
         )
     )
     :<|> return (singleton "invitation_url" "my-url")
-    :<|> saveMessage
+    :<|> saveMessage state
 
-messages :: IO (Map String String)
-messages = newIO
-
-saveMessage :: String -> Message -> Handler NoContent
-saveMessage connection (Message text) = do
-  existingMessages <- liftIO messages
-  liftIO $ atomically $ insert text connection existingMessages
+saveMessage :: State -> String -> Message -> Handler NoContent
+saveMessage state connection (Message text) = do
+  liftIO $
+    putStrLn $
+      "Test framework received message: {\"connection\":\""
+        <> connection
+        <> "\",\"text\":\""
+        <> text
+        <> "\"}"
+  void $ liftIO $ insert connection text $ messages state
   return NoContent
 
-getReceivedMessage :: String -> IO (Maybe String)
-getReceivedMessage connection = do
-  existingMessages <- messages
-  atomically $ StmMap.lookup connection existingMessages
+getReceivedMessage :: State -> String -> IO (Maybe String)
+getReceivedMessage state connection =
+  CMap.lookup connection $ messages state
 
-runServer :: Int -> IO ()
-runServer frameworkPort = do
+runServer :: Int -> State -> IO ()
+runServer frameworkPort state = do
   putStrLn $ "Framework listening on port: " <> show frameworkPort
   Warp.run
     frameworkPort
     ( serveWithContext
         (Proxy :: Proxy API)
         (authHandler :. EmptyContext)
-        server
+        $ server state
     )
 
 authHandler :: AuthHandler Request ()
