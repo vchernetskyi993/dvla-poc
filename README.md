@@ -43,9 +43,5 @@ Personal learning POC project to practice DIDs and Hyperledger Aries. No product
 
 2. At this point you can send messages between Bifold and DVLA.
    - In Bifold go to contacts, newest contact should be `DVLA Agent`. Send some message.
-
-## TODOs:
-
-1. Setup mediator
-
-2. Connect to mediator with Aries Bifold
+   - Issue `curl -X POST -H "Content-Type: application/json" -d '{"connectionId": "1c50dea2-1915-4a0b-b0bb-7477497b4cd4", "text": "Hello!"}' localhost:8002/api/messages` to send "Hello!" message to mobile app.
+      - To find `connectionId` either check controller logs or issue `curl localhost:8002/api/connections`.
