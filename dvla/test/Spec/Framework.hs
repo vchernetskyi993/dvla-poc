@@ -18,7 +18,7 @@ import Config (FrameworkClientConfig (FrameworkClientConfig, host, port, secret)
 import Control.Concurrent.Map as CMap (Map, insert, lookup)
 import Control.Monad (when)
 import Control.Monad.IO.Class (liftIO)
-import Data.Aeson (FromJSON, Object, Value (Array, Object))
+import Data.Aeson (FromJSON, Object, Value (Array, Object), object)
 import Data.Aeson.Key (Key)
 import Data.Aeson.KeyMap as KeyMap (fromList, singleton)
 import Data.ByteString.Char8 (unpack)
@@ -64,14 +64,19 @@ newtype State = State {messages :: Map String String}
 
 type API =
   AuthProtect "api-key-auth"
-    :> "connections"
-    :> ( Get '[JSON] Object
-           :<|> "create-invitation"
-             :> Post '[JSON] Object
-           :<|> Capture "connectionId" String
-             :> "send-message"
-             :> ReqBody '[JSON] Message
-             :> PostNoContent
+    :> ( "connections"
+           :> ( Get '[JSON] Object
+                  :<|> "create-invitation"
+                    :> Post '[JSON] Object
+                  :<|> Capture "connectionId" String
+                    :> "send-message"
+                    :> ReqBody '[JSON] Message
+                    :> PostNoContent
+              )
+           :<|> "schemas"
+             :> ( Post '[JSON] Value
+                    :<|> "created" :> Get '[JSON] Value
+                )
        )
 
 newtype Message = Message {content :: String} deriving (Eq, Show, Generic)
@@ -83,26 +88,28 @@ asAesonObject = Object . KeyMap.fromList
 
 server :: State -> Server API
 server state () =
-  return
-    ( singleton
-        "results"
-        ( Array $
-            Vector.fromList
-              [ asAesonObject
-                  [ ("state", "request"),
-                    ("connection_id", "1234556678"),
-                    ("their_label", "Alice")
-                  ],
-                asAesonObject
-                  [ ("state", "active"),
-                    ("connection_id", "8765431234"),
-                    ("their_label", "Bob")
-                  ]
-              ]
-        )
-    )
-    :<|> return (singleton "invitation_url" "my-url")
-    :<|> saveMessage state
+  ( return
+      ( singleton
+          "results"
+          ( Array $
+              Vector.fromList
+                [ asAesonObject
+                    [ ("state", "request"),
+                      ("connection_id", "1234556678"),
+                      ("their_label", "Alice")
+                    ],
+                  asAesonObject
+                    [ ("state", "active"),
+                      ("connection_id", "8765431234"),
+                      ("their_label", "Bob")
+                    ]
+                ]
+          )
+      )
+      :<|> return (singleton "invitation_url" "my-url")
+      :<|> saveMessage state
+  )
+    :<|> (createSchema :<|> fetchSchemas)
 
 saveMessage :: State -> String -> Message -> Handler NoContent
 saveMessage state connection (Message text) = do
@@ -119,6 +126,12 @@ saveMessage state connection (Message text) = do
 getReceivedMessage :: State -> String -> IO (Maybe String)
 getReceivedMessage state connection =
   CMap.lookup connection $ messages state
+
+createSchema :: Handler Value
+createSchema = return $ object []
+
+fetchSchemas :: Handler Value
+fetchSchemas = return $ object []
 
 runServer :: Int -> State -> IO ()
 runServer frameworkPort state = do

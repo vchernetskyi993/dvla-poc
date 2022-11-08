@@ -11,6 +11,7 @@ module Api
     Results (..),
     ConnectionDto (..),
     Message (..),
+    Schema (..),
   )
 where
 
@@ -45,7 +46,9 @@ type API =
              :> ReqBody '[JSON] Message
              :> PostNoContent
            :<|> "schemas"
-             :> PostNoContent
+             :> ( Post '[JSON] Schema
+                    :<|> Get '[JSON] (Results String)
+                )
            :<|> "licenses"
              :> ReqBody '[JSON] License
              :> PostNoContent
@@ -105,6 +108,13 @@ data Message = Message
 instance ToJSON Message
 
 instance FromJSON Message
+
+newtype Schema = Schema
+  { credentialId :: String
+  }
+  deriving (Eq, Show, Generic)
+
+instance ToJSON Schema
 
 data License = License
   { firstName :: String,

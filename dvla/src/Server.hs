@@ -9,7 +9,8 @@ import Api
     ConnectionDto (ConnectionDto, connectionId),
     Invitation (Invitation),
     Message (Message, connectionId),
-    Results,
+    Results (Results, results),
+    Schema (Schema, credentialId),
     name,
     text,
   )
@@ -49,11 +50,7 @@ server client =
            )
       :<|> fetchConnections client
       :<|> sendMessage' client
-      -- TODO: generate schema
-      :<|> ( do
-               liftIO $ putStrLn "Generating driver license schema..."
-               return NoContent
-           )
+      :<|> (generateLicenseSchema :<|> fetchSchemas)
       -- TODO: issue driver license
       :<|> ( \license -> do
                liftIO $ putStrLn $ "Issuing license: " <> unpack (encode license)
@@ -90,6 +87,17 @@ sendMessage' client Message {connectionId = cid, text = message} = do
       sendMessage cid $
         SendMessageBody {content = message}
   return NoContent
+
+generateLicenseSchema :: Handler Schema
+generateLicenseSchema = do
+  liftIO $ putStrLn "Generating driver license schema..."
+  -- 1. create schema: framework POST /schemas
+  -- 2. create credential: framework POST /credential-definitions
+  -- 3. Return credential id
+  return Schema {credentialId = "12345"}
+
+fetchSchemas :: Handler (Results String)
+fetchSchemas = return $ Results {results = ["12345"]}
 
 performFrameworkRequest :: ClientEnv -> ClientM a -> Handler a
 performFrameworkRequest client request =

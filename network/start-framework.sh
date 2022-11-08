@@ -2,6 +2,12 @@
 
 set -e
 
+# Register URL http://test.bcovrin.vonx.io/register
+
+# TODO: random seed
+
+# TODO: store did
+
 while [ -z "$NGROK_ENDPOINT" ]; do
     echo "Fetching end point from ngrok service"
     NGROK_ENDPOINT=$(curl ngrok:4040/api/tunnels | jq -r '.tunnels[] | select(.name=="framework.dvla") | .public_url')
@@ -14,6 +20,7 @@ done
 
 echo "Starting aca-py agent with endpoint [$NGROK_ENDPOINT]"
 
+# TODO: set seed
 exec aca-py start \
     --endpoint "$NGROK_ENDPOINT" \
     --inbound-transport http '0.0.0.0' "$FRAMEWORK_PORT" \
@@ -21,7 +28,7 @@ exec aca-py start \
     --admin '0.0.0.0' "$ADMIN_PORT" \
     --admin-api-key "$ADMIN_SECRET" \
     --webhook-url http://"$CONTROLLER_HOST":"$CONTROLLER_PORT"/api/webhooks \
-    --genesis-url "https://raw.githubusercontent.com/Indicio-tech/indicio-network/main/genesis_files/pool_transactions_testnet_genesis" \
+    --genesis-url "http://test.bcovrin.vonx.io/genesis" \
     --label "$AGENT_LABEL" \
     --wallet-type "askar" \
     --wallet-name "$WALLET_NAME" \
@@ -56,7 +63,6 @@ exec aca-py start \
 # "--auto-ping-connection",
 # "--auto-respond-messages",
 # "--preserve-exchange-records",
-# "--auto-provision",
 # "--public-invites",
 # "--genesis-transactions",
 # "--seed",

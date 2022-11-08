@@ -35,8 +35,8 @@ Personal learning POC project to practice DIDs and Hyperledger Aries. No product
 
 3. Connect Alice mobile device to DVLA network. Theoretically should work with different mobile agents,
    but was actually tested with Aries Bifold agent. Follow instructions for Aries Bifold setup in their [repo](https://github.com/hyperledger/aries-mobile-agent-react-native).
-   - Use Indicio Testnet and Indicio public mediator
-
+   - Set `MEDIATOR_URL` to Indicio public mediator invitation from [here](https://indicio-tech.github.io/mediator/).
+   - Set `GENESIS_URL` to BCovrin Test (http://test.bcovrin.vonx.io/genesis)
 ## Usage
 
 1. Go to DVLA UI on `localhost:8002`. Generate Invitation and scan QR with Aries Bifold.

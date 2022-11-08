@@ -1,0 +1,3 @@
+module CreateSchemaSpec () where
+
+-- shouldCreateSchema
