@@ -9,8 +9,7 @@ import Api
     ConnectionDto (ConnectionDto, connectionId),
     Invitation (Invitation),
     Message (Message, connectionId),
-    Results (Results, results),
-    Schema (Schema, credentialId),
+    Results,
     name,
     text,
   )
@@ -22,10 +21,12 @@ import Data.ByteString.Lazy.Char8 as BSL (pack, unpack)
 import Data.Functor (void, (<&>))
 import Data.Maybe (fromJust)
 import FrameworkClient
-  ( Connection (connectionId, name, state),
+  ( Connection (Connection, connectionId, name, state),
     ConnectionState (Active),
+    Schema (Schema, attributes, name, version),
     SendMessageBody (SendMessageBody, content),
     createInvitation,
+    createSchema,
     getConnections,
     sendMessage,
   )
@@ -50,7 +51,7 @@ server client =
            )
       :<|> fetchConnections client
       :<|> sendMessage' client
-      :<|> (generateLicenseSchema :<|> fetchSchemas)
+      :<|> generateLicenseSchema client
       -- TODO: issue driver license
       :<|> ( \license -> do
                liftIO $ putStrLn $ "Issuing license: " <> unpack (encode license)
@@ -74,10 +75,10 @@ fetchConnections client = do
       <&> fmap toConnectionDto
 
 toConnectionDto :: Connection -> ConnectionDto
-toConnectionDto c =
+toConnectionDto Connection {name = name, connectionId = connectionId} =
   ConnectionDto
-    { Api.connectionId = FrameworkClient.connectionId c,
-      Api.name = FrameworkClient.name c
+    { connectionId = connectionId,
+      name = name
     }
 
 sendMessage' :: ClientEnv -> Message -> Handler NoContent
@@ -88,16 +89,18 @@ sendMessage' client Message {connectionId = cid, text = message} = do
         SendMessageBody {content = message}
   return NoContent
 
-generateLicenseSchema :: Handler Schema
-generateLicenseSchema = do
-  liftIO $ putStrLn "Generating driver license schema..."
-  -- 1. create schema: framework POST /schemas
+generateLicenseSchema :: ClientEnv -> Handler NoContent
+generateLicenseSchema client = do
+  void $
+    performFrameworkRequest client $
+      createSchema $
+        Schema
+          { attributes = ["firstName", "lastName", "category"],
+            name = "driver license",
+            version = "1.0"
+          }
   -- 2. create credential: framework POST /credential-definitions
-  -- 3. Return credential id
-  return Schema {credentialId = "12345"}
-
-fetchSchemas :: Handler (Results String)
-fetchSchemas = return $ Results {results = ["12345"]}
+  return NoContent
 
 performFrameworkRequest :: ClientEnv -> ClientM a -> Handler a
 performFrameworkRequest client request =

@@ -4,21 +4,27 @@
 
 module Main (main) where
 
-import Control.Concurrent (forkIO, killThread)
+import Control.Concurrent (forkIO, killThread, newMVar, readMVar, swapMVar)
 import Control.Concurrent.Map (empty)
 import Control.Exception (bracket)
 import Control.Monad.IO.Class (liftIO)
-import Data.Functor ((<&>))
+import Data.Functor (void)
 import Data.UUID.V4 (nextRandom)
 import Lib (app)
 import Network.HTTP.Types (methodPost)
 import Network.HTTP.Types.Header (hContentType)
 import Network.Wai (Application)
-import Spec.Framework (State (State), clientConfig, getReceivedMessage, runServer)
+import Spec.Framework
+  ( State (State, createDefinitionTriggered, createSchemaTriggered),
+    clientConfig,
+    getReceivedMessage,
+    runServer,
+  )
 import Spec.Util (getFreePort)
 import Test.Hspec
   ( ActionWith,
     Spec,
+    after,
     aroundAllWith,
     beforeAll,
     beforeAllWith,
@@ -27,7 +33,7 @@ import Test.Hspec
     it,
     shouldBe,
   )
-import Test.Hspec.Wai (get, post, request, shouldRespondWith, getState)
+import Test.Hspec.Wai (get, getState, post, request, shouldRespondWith)
 import Test.Hspec.Wai.JSON (json)
 
 main :: IO ()
@@ -35,8 +41,8 @@ main = hspec spec
 
 spec :: Spec
 spec =
-  beforeAll getFreePort $
-    beforeAllWith initialState $
+  beforeAll ((,) <$> getFreePort <*> initialState) $
+    after resetState $
       aroundAllWith withFramework $
         beforeAllWith withApplication $ do
           describe "POST /api/invitations" $
@@ -74,6 +80,19 @@ spec =
               receivedMessage <- liftIO $ getReceivedMessage state $ show guid
               liftIO $ receivedMessage `shouldBe` Just (show message)
 
+          describe "POST /api/schemas" $
+            it "should create new credential schema" $ do
+              -- when
+              post "/api/schemas" "" `shouldRespondWith` 204
+
+              -- then
+              state <- getState
+              createSchemaTriggeredTimes <-
+                liftIO $
+                  readMVar $
+                    createSchemaTriggered state
+              liftIO $ createSchemaTriggeredTimes `shouldBe` 1
+
 withFramework :: ActionWith (Int, State) -> ActionWith (Int, State)
 withFramework action (port, state) =
   bracket
@@ -85,7 +104,25 @@ withFramework action (port, state) =
     (const $ action (port, state))
 
 withApplication :: (Int, State) -> IO (State, Application)
-withApplication (port, state) = app (clientConfig port) <&> (state,)
+withApplication (port, state) = (state,) <$> app (clientConfig port)
 
-initialState :: Int -> IO (Int, State)
-initialState port = empty <&> State <&> (port,)
+initialState :: IO State
+initialState =
+  State
+    <$> empty
+    <*> nextRandom
+    <*> newMVar 0
+    <*> nextRandom
+    <*> newMVar 0
+
+resetState :: (Int, State) -> IO ()
+resetState
+  ( _,
+    State
+      { createSchemaTriggered = createSchemaTriggered',
+        createDefinitionTriggered = createDefinitionTriggered'
+      }
+    ) =
+    void $
+      swapMVar createSchemaTriggered' 0
+        >> swapMVar createDefinitionTriggered' 0

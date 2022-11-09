@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE InstanceSigs #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -13,6 +14,8 @@ module FrameworkClient
     ConnectionState (..),
     sendMessage,
     SendMessageBody (..),
+    createSchema,
+    Schema (..),
   )
 where
 
@@ -21,10 +24,12 @@ import Config (FrameworkClientConfig (port), host, secret)
 import Data.Aeson
   ( FromJSON (parseJSON),
     Object,
-    ToJSON,
+    ToJSON (toJSON),
     Value,
+    object,
     withObject,
     (.:),
+    (.=),
   )
 import Data.Aeson.Types (Parser)
 import Data.ByteString.Char8 (pack)
@@ -66,6 +71,7 @@ type API =
              :> ReqBody '[JSON] SendMessageBody
              :> PostNoContent
        )
+    :<|> "schemas" :> ReqBody '[JSON] Schema :> Post '[JSON] Value
 
 newtype SendMessageBody = SendMessageBody
   { content :: String
@@ -109,7 +115,10 @@ api = Proxy
 createInvitation :: ClientM Object
 getConnections :: ClientM (Results Connection)
 sendMessage :: String -> SendMessageBody -> ClientM NoContent
-(createInvitation :<|> getConnections :<|> sendMessage) = client api
+createSchema :: Schema -> ClientM Value
+( (createInvitation :<|> getConnections :<|> sendMessage)
+    :<|> createSchema
+  ) = client api
 
 createFrameworkClient :: FrameworkClientConfig -> IO ClientEnv
 createFrameworkClient config = do
@@ -127,3 +136,19 @@ createFrameworkClient config = do
     mkClientEnv
       manager
       (BaseUrl Http (host config) (port config) "")
+
+data Schema = Schema
+  { attributes :: ![String],
+    name :: !String,
+    version :: !String
+  }
+  deriving (Eq, Show)
+
+instance ToJSON Schema where
+  toJSON :: Schema -> Value
+  toJSON (Schema {attributes = attributes, name = name, version = version}) =
+    object
+      [ "attributes" .= attributes,
+        "schema_name" .= name,
+        "schema_version" .= version
+      ]

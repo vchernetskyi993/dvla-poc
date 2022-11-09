@@ -15,14 +15,23 @@ module Spec.Framework
 where
 
 import Config (FrameworkClientConfig (FrameworkClientConfig, host, port, secret))
+import Control.Concurrent (MVar, modifyMVar_)
 import Control.Concurrent.Map as CMap (Map, insert, lookup)
 import Control.Monad (when)
 import Control.Monad.IO.Class (liftIO)
-import Data.Aeson (FromJSON, Object, Value (Array, Object), object)
+import Data.Aeson
+  ( FromJSON,
+    Object,
+    Value (Array, Object),
+    encode,
+    object,
+    (.=),
+  )
 import Data.Aeson.Key (Key)
 import Data.Aeson.KeyMap as KeyMap (fromList, singleton)
 import Data.ByteString.Char8 (unpack)
 import Data.Functor (void)
+import Data.UUID (UUID)
 import Data.Vector qualified as Vector (fromList)
 import GHC.Generics (Generic)
 import Network.Wai (Request (requestHeaders))
@@ -40,6 +49,7 @@ import Servant
     Proxy (Proxy),
     ReqBody,
     Server,
+    err400,
     err401,
     errBody,
     serveWithContext,
@@ -60,7 +70,13 @@ clientConfig frameworkPort =
       secret = adminSecret
     }
 
-newtype State = State {messages :: Map String String}
+data State = State
+  { messages :: Map String String,
+    schemaId :: UUID,
+    createSchemaTriggered :: MVar Int,
+    definitionId :: UUID,
+    createDefinitionTriggered :: MVar Int
+  }
 
 type API =
   AuthProtect "api-key-auth"
@@ -74,9 +90,11 @@ type API =
                     :> PostNoContent
               )
            :<|> "schemas"
-             :> ( Post '[JSON] Value
-                    :<|> "created" :> Get '[JSON] Value
-                )
+             :> ReqBody '[JSON] Value
+             :> Post '[JSON] Value
+           :<|> "credential-definitions"
+             :> ReqBody '[JSON] Value
+             :> Post '[JSON] Value
        )
 
 newtype Message = Message {content :: String} deriving (Eq, Show, Generic)
@@ -109,7 +127,8 @@ server state () =
       :<|> return (singleton "invitation_url" "my-url")
       :<|> saveMessage state
   )
-    :<|> (createSchema :<|> fetchSchemas)
+    :<|> createSchema state
+    :<|> createDefinition
 
 saveMessage :: State -> String -> Message -> Handler NoContent
 saveMessage state connection (Message text) = do
@@ -127,11 +146,30 @@ getReceivedMessage :: State -> String -> IO (Maybe String)
 getReceivedMessage state connection =
   CMap.lookup connection $ messages state
 
-createSchema :: Handler Value
-createSchema = return $ object []
+createSchema :: State -> Value -> Handler Value
+createSchema State {createSchemaTriggered = createSchemaTriggered'} body = do
+  liftIO $ modifyMVar_ createSchemaTriggered' $ pure . (+ 1)
 
-fetchSchemas :: Handler Value
-fetchSchemas = return $ object []
+  when (body /= expectedBody) $ do
+    liftIO $
+      putStrLn $
+        "Invalid body to create schema, expected: "
+          <> show (encode expectedBody)
+          <> ", but got: "
+          <> show (encode body)
+    throwError err400
+
+  return $ object []
+  where
+    expectedBody =
+      object
+        [ "attributes" .= (["firstName", "lastName", "category"] :: [String]),
+          "schema_name" .= ("driver license" :: String),
+          "schema_version" .= ("1.0" :: String)
+        ]
+
+createDefinition :: Value -> Handler Value
+createDefinition _body = return $ object []
 
 runServer :: Int -> State -> IO ()
 runServer frameworkPort state = do
