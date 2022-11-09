@@ -2,11 +2,23 @@
 
 set -e
 
-# Register URL http://test.bcovrin.vonx.io/register
+if [ -f .seed ]; then
+    echo "Using existing public DID."
+    SEED=$(cat .seed)
+else
+    echo "Registering new public DID."
+    SEED=$(
+        tr -dc A-Za-z0-9 </dev/urandom | head -c 32
+        echo ''
+    )
 
-# TODO: random seed
+    echo "$SEED" >.seed
 
-# TODO: store did
+    curl \
+        -H "Content-Type: application/json" \
+        -d '{"seed":"'"$SEED"'"}' \
+        "$LEDGER_URL"/register
+fi
 
 while [ -z "$NGROK_ENDPOINT" ]; do
     echo "Fetching end point from ngrok service"
@@ -20,7 +32,6 @@ done
 
 echo "Starting aca-py agent with endpoint [$NGROK_ENDPOINT]"
 
-# TODO: set seed
 exec aca-py start \
     --endpoint "$NGROK_ENDPOINT" \
     --inbound-transport http '0.0.0.0' "$FRAMEWORK_PORT" \
@@ -28,11 +39,12 @@ exec aca-py start \
     --admin '0.0.0.0' "$ADMIN_PORT" \
     --admin-api-key "$ADMIN_SECRET" \
     --webhook-url http://"$CONTROLLER_HOST":"$CONTROLLER_PORT"/api/webhooks \
-    --genesis-url "http://test.bcovrin.vonx.io/genesis" \
+    --genesis-url "$LEDGER_URL"/genesis \
     --label "$AGENT_LABEL" \
     --wallet-type "askar" \
     --wallet-name "$WALLET_NAME" \
     --wallet-key "$WALLET_KEY" \
+    --seed "$SEED" \
     --auto-provision \
     --auto-accept-requests
 
@@ -64,9 +76,6 @@ exec aca-py start \
 # "--auto-respond-messages",
 # "--preserve-exchange-records",
 # "--public-invites",
-# "--genesis-transactions",
-# "--seed",
-# "d_000000000000000000000000359722",
 # "--notify-revocation",
 # "--monitor-revocation-notification",
 # "--tails-server-base-url",

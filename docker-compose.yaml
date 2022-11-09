@@ -25,11 +25,13 @@ services:
       - CONTROLLER_PORT=8002
       - WALLET_NAME=${DVLA_WALLET_NAME}
       - WALLET_KEY=${DVLA_WALLET_KEY}
+      - LEDGER_URL=http://test.bcovrin.vonx.io
     ports:
       - "8000:8000"
       - "8001:8001"
     volumes:
       - ./network/start-framework.sh:/scripts/start-framework.sh
+    stop_signal: SIGKILL
     depends_on:
       - ngrok
 
@@ -43,3 +45,4 @@ services:
       - FRAMEWORK_SECRET=${DVLA_ADMIN_SECRET}
     ports:
       - "8002:8002"
+    stop_signal: SIGINT
