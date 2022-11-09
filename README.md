@@ -43,5 +43,7 @@ Personal learning POC project to practice DIDs and Hyperledger Aries. No product
 
 2. At this point you can send messages between Bifold and DVLA.
    - In Bifold go to contacts, newest contact should be `DVLA Agent`. Send some message.
-   - Issue `curl -X POST -H "Content-Type: application/json" -d '{"connectionId": "1c50dea2-1915-4a0b-b0bb-7477497b4cd4", "text": "Hello!"}' localhost:8002/api/messages` to send "Hello!" message to mobile app.
+   - Issue `curl -i -X POST -H "Content-Type: application/json" -d '{"connectionId": "1c50dea2-1915-4a0b-b0bb-7477497b4cd4", "text": "Hello!"}' localhost:8002/api/messages` to send "Hello!" message to mobile app.
       - To find `connectionId` either check controller logs or issue `curl localhost:8002/api/connections`.
+
+3. Create schema and credential definition for driver license: `curl -i -X POST localhost:8002/api/schemas`.
