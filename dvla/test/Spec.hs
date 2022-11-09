@@ -87,11 +87,18 @@ spec =
 
               -- then
               state <- getState
+
               createSchemaTriggeredTimes <-
                 liftIO $
                   readMVar $
                     createSchemaTriggered state
               liftIO $ createSchemaTriggeredTimes `shouldBe` 1
+
+              createDefinitionTriggeredTimes <-
+                liftIO $
+                  readMVar $
+                    createDefinitionTriggered state
+              liftIO $ createDefinitionTriggeredTimes `shouldBe` 1
 
 withFramework :: ActionWith (Int, State) -> ActionWith (Int, State)
 withFramework action (port, state) =
@@ -112,7 +119,6 @@ initialState =
     <$> empty
     <*> nextRandom
     <*> newMVar 0
-    <*> nextRandom
     <*> newMVar 0
 
 resetState :: (Int, State) -> IO ()

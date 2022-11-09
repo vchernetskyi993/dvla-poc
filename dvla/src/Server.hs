@@ -25,6 +25,7 @@ import FrameworkClient
     ConnectionState (Active),
     Schema (Schema, attributes, name, version),
     SendMessageBody (SendMessageBody, content),
+    createDefinition,
     createInvitation,
     createSchema,
     getConnections,
@@ -91,7 +92,7 @@ sendMessage' client Message {connectionId = cid, text = message} = do
 
 generateLicenseSchema :: ClientEnv -> Handler NoContent
 generateLicenseSchema client = do
-  void $
+  schemaId <-
     performFrameworkRequest client $
       createSchema $
         Schema
@@ -99,8 +100,8 @@ generateLicenseSchema client = do
             name = "driver license",
             version = "1.0"
           }
-  -- 2. create credential: framework POST /credential-definitions
-  return NoContent
+
+  performFrameworkRequest client $ createDefinition schemaId
 
 performFrameworkRequest :: ClientEnv -> ClientM a -> Handler a
 performFrameworkRequest client request =

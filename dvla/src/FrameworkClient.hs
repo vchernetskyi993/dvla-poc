@@ -16,6 +16,8 @@ module FrameworkClient
     SendMessageBody (..),
     createSchema,
     Schema (..),
+    SchemaId (..),
+    createDefinition,
   )
 where
 
@@ -71,7 +73,8 @@ type API =
              :> ReqBody '[JSON] SendMessageBody
              :> PostNoContent
        )
-    :<|> "schemas" :> ReqBody '[JSON] Schema :> Post '[JSON] Value
+    :<|> "schemas" :> ReqBody '[JSON] Schema :> Post '[JSON] SchemaId
+    :<|> "credential-definitions" :> ReqBody '[JSON] SchemaId :> PostNoContent
 
 newtype SendMessageBody = SendMessageBody
   { content :: String
@@ -115,9 +118,11 @@ api = Proxy
 createInvitation :: ClientM Object
 getConnections :: ClientM (Results Connection)
 sendMessage :: String -> SendMessageBody -> ClientM NoContent
-createSchema :: Schema -> ClientM Value
+createSchema :: Schema -> ClientM SchemaId
+createDefinition :: SchemaId -> ClientM NoContent
 ( (createInvitation :<|> getConnections :<|> sendMessage)
     :<|> createSchema
+    :<|> createDefinition
   ) = client api
 
 createFrameworkClient :: FrameworkClientConfig -> IO ClientEnv
@@ -146,9 +151,24 @@ data Schema = Schema
 
 instance ToJSON Schema where
   toJSON :: Schema -> Value
-  toJSON (Schema {attributes = attributes, name = name, version = version}) =
+  toJSON Schema {attributes = attributes, name = name, version = version} =
     object
       [ "attributes" .= attributes,
         "schema_name" .= name,
         "schema_version" .= version
+      ]
+
+newtype SchemaId = SchemaId {schemaId :: String} deriving (Eq, Show)
+
+instance FromJSON SchemaId where
+  parseJSON :: Value -> Parser SchemaId
+  parseJSON = withObject "SchemaId" $ \obj -> do
+    schemaId <- obj .: "schema_id"
+    return (SchemaId {schemaId = schemaId})
+
+instance ToJSON SchemaId where
+  toJSON :: SchemaId -> Value
+  toJSON SchemaId {schemaId = schemaId} =
+    object
+      [ "schema_id" .= schemaId
       ]

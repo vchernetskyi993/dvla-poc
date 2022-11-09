@@ -31,7 +31,7 @@ import Data.Aeson.Key (Key)
 import Data.Aeson.KeyMap as KeyMap (fromList, singleton)
 import Data.ByteString.Char8 (unpack)
 import Data.Functor (void)
-import Data.UUID (UUID)
+import Data.UUID (UUID, toString)
 import Data.Vector qualified as Vector (fromList)
 import GHC.Generics (Generic)
 import Network.Wai (Request (requestHeaders))
@@ -74,7 +74,6 @@ data State = State
   { messages :: Map String String,
     schemaId :: UUID,
     createSchemaTriggered :: MVar Int,
-    definitionId :: UUID,
     createDefinitionTriggered :: MVar Int
   }
 
@@ -128,7 +127,7 @@ server state () =
       :<|> saveMessage state
   )
     :<|> createSchema state
-    :<|> createDefinition
+    :<|> createDefinition state
 
 saveMessage :: State -> String -> Message -> Handler NoContent
 saveMessage state connection (Message text) = do
@@ -147,29 +146,52 @@ getReceivedMessage state connection =
   CMap.lookup connection $ messages state
 
 createSchema :: State -> Value -> Handler Value
-createSchema State {createSchemaTriggered = createSchemaTriggered'} body = do
-  liftIO $ modifyMVar_ createSchemaTriggered' $ pure . (+ 1)
+createSchema
+  State
+    { createSchemaTriggered = createSchemaTriggered',
+      schemaId = schemaId'
+    }
+  body = do
+    liftIO $ modifyMVar_ createSchemaTriggered' $ pure . (+ 1)
 
-  when (body /= expectedBody) $ do
-    liftIO $
-      putStrLn $
-        "Invalid body to create schema, expected: "
-          <> show (encode expectedBody)
-          <> ", but got: "
-          <> show (encode body)
-    throwError err400
+    assertBody body expectedBody
 
-  return $ object []
-  where
-    expectedBody =
-      object
-        [ "attributes" .= (["firstName", "lastName", "category"] :: [String]),
-          "schema_name" .= ("driver license" :: String),
-          "schema_version" .= ("1.0" :: String)
-        ]
+    return $ object ["schema_id" .= toString schemaId']
+    where
+      expectedBody =
+        object
+          [ "attributes" .= (["firstName", "lastName", "category"] :: [String]),
+            "schema_name" .= ("driver license" :: String),
+            "schema_version" .= ("1.0" :: String)
+          ]
 
-createDefinition :: Value -> Handler Value
-createDefinition _body = return $ object []
+createDefinition :: State -> Value -> Handler Value
+createDefinition
+  State
+    { createDefinitionTriggered = createDefinitionTriggered',
+      schemaId = schemaId'
+    }
+  body = do
+    liftIO $ modifyMVar_ createDefinitionTriggered' $ pure . (+ 1)
+
+    assertBody body expectedBody
+
+    return $ object []
+    where
+      expectedBody =
+        object
+          [ "schema_id" .= toString schemaId'
+          ]
+
+assertBody :: Value -> Value -> Handler ()
+assertBody actual expected = when (actual /= expected) $ do
+  liftIO $
+    putStrLn $
+      "Invalid body to create schema, expected: "
+        <> show (encode expected)
+        <> ", but got: "
+        <> show (encode actual)
+  throwError err400
 
 runServer :: Int -> State -> IO ()
 runServer frameworkPort state = do
