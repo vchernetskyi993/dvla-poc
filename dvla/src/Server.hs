@@ -76,10 +76,10 @@ fetchConnections client = do
       <&> fmap toConnectionDto
 
 toConnectionDto :: Connection -> ConnectionDto
-toConnectionDto Connection {name = name, connectionId = connectionId} =
+toConnectionDto Connection {name = name', connectionId = connectionId'} =
   ConnectionDto
-    { connectionId = connectionId,
-      name = name
+    { connectionId = connectionId',
+      name = name'
     }
 
 sendMessage' :: ClientEnv -> Message -> Handler NoContent
@@ -96,8 +96,8 @@ generateLicenseSchema client = do
     performFrameworkRequest client $
       createSchema $
         Schema
-          { attributes = ["firstName", "lastName", "category"],
-            name = "driver license",
+          { attributes = ["first_name", "last_name", "category"],
+            name = "driver_license",
             version = "1.0"
           }
 

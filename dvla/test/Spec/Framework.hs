@@ -160,8 +160,8 @@ createSchema
     where
       expectedBody =
         object
-          [ "attributes" .= (["firstName", "lastName", "category"] :: [String]),
-            "schema_name" .= ("driver license" :: String),
+          [ "attributes" .= (["first_name", "last_name", "category"] :: [String]),
+            "schema_name" .= ("driver_license" :: String),
             "schema_version" .= ("1.0" :: String)
           ]
 
