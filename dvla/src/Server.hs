@@ -7,7 +7,9 @@ module Server (server) where
 import Api
   ( API,
     ConnectionDto (ConnectionDto, connectionId),
+    Credential (Credential, attributes, connectionId),
     Invitation (Invitation),
+    License (License, category, firstName, lastName),
     Message (Message, connectionId),
     Results,
     name,
@@ -21,14 +23,20 @@ import Data.ByteString.Lazy.Char8 as BSL (pack, unpack)
 import Data.Functor (void, (<&>))
 import Data.Maybe (fromJust)
 import FrameworkClient
-  ( Connection (Connection, connectionId, name, state),
+  ( Attribute (Attribute, name, value),
+    Connection (Connection, connectionId, name, state),
     ConnectionState (Active),
+    CredentialDefinitionIds (ids),
+    CredentialOffer (CredentialOffer, connectionId, credentialPreview, definitionId),
+    CredentialPreview (CredentialPreview, attributes),
     Schema (Schema, attributes, name, version),
     SendMessageBody (SendMessageBody, content),
     createDefinition,
     createInvitation,
     createSchema,
+    fetchDefinitionIds,
     getConnections,
+    issueCredential,
     sendMessage,
   )
 import Servant
@@ -53,11 +61,7 @@ server client =
       :<|> fetchConnections client
       :<|> sendMessage' client
       :<|> generateLicenseSchema client
-      -- TODO: issue driver license
-      :<|> ( \license -> do
-               liftIO $ putStrLn $ "Issuing license: " <> unpack (encode license)
-               return NoContent
-           )
+      :<|> issueLicense client
   )
     :<|> serveDirectoryFileServer "ui/build"
 
@@ -102,6 +106,36 @@ generateLicenseSchema client = do
           }
 
   performFrameworkRequest client $ createDefinition schemaId
+
+issueLicense :: ClientEnv -> Credential License -> Handler NoContent
+issueLicense client credential = do
+  definitionId' <- performFrameworkRequest client fetchDefinitionIds
+
+  performFrameworkRequest client $
+    issueCredential $
+      toCredentialOffer credential $
+        head $
+          ids definitionId'
+
+toCredentialOffer :: Credential License -> String -> CredentialOffer
+toCredentialOffer
+  Credential
+    { connectionId = connectionId',
+      attributes = License {firstName = firstName', lastName = lastName', category = category'}
+    }
+  definitionId' =
+    CredentialOffer
+      { connectionId = connectionId',
+        definitionId = definitionId',
+        credentialPreview =
+          CredentialPreview
+            { attributes =
+                [ Attribute {name = "first_name", value = firstName'},
+                  Attribute {name = "last_name", value = lastName'},
+                  Attribute {name = "category", value = category'}
+                ]
+            }
+      }
 
 performFrameworkRequest :: ClientEnv -> ClientM a -> Handler a
 performFrameworkRequest client request =

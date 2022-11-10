@@ -18,6 +18,12 @@ module FrameworkClient
     Schema (..),
     SchemaId (..),
     createDefinition,
+    fetchDefinitionIds,
+    CredentialDefinitionIds (..),
+    issueCredential,
+    CredentialOffer (..),
+    CredentialPreview (..),
+    Attribute (..),
   )
 where
 
@@ -74,7 +80,14 @@ type API =
              :> PostNoContent
        )
     :<|> "schemas" :> ReqBody '[JSON] Schema :> Post '[JSON] SchemaId
-    :<|> "credential-definitions" :> ReqBody '[JSON] SchemaId :> PostNoContent
+    :<|> "credential-definitions"
+      :> ( ReqBody '[JSON] SchemaId :> PostNoContent
+             :<|> "created" :> Get '[JSON] CredentialDefinitionIds
+         )
+    :<|> "issue-credential"
+      :> "send-offer"
+      :> ReqBody '[JSON] CredentialOffer
+      :> PostNoContent
 
 newtype SendMessageBody = SendMessageBody
   { content :: String
@@ -120,9 +133,12 @@ getConnections :: ClientM (Results Connection)
 sendMessage :: String -> SendMessageBody -> ClientM NoContent
 createSchema :: Schema -> ClientM SchemaId
 createDefinition :: SchemaId -> ClientM NoContent
+fetchDefinitionIds :: ClientM CredentialDefinitionIds
+issueCredential :: CredentialOffer -> ClientM NoContent
 ( (createInvitation :<|> getConnections :<|> sendMessage)
     :<|> createSchema
-    :<|> createDefinition
+    :<|> (createDefinition :<|> fetchDefinitionIds)
+    :<|> issueCredential
   ) = client api
 
 createFrameworkClient :: FrameworkClientConfig -> IO ClientEnv
@@ -151,11 +167,11 @@ data Schema = Schema
 
 instance ToJSON Schema where
   toJSON :: Schema -> Value
-  toJSON Schema {attributes = attributes, name = name, version = version} =
+  toJSON Schema {attributes = attributes', name = name', version = version'} =
     object
-      [ "attributes" .= attributes,
-        "schema_name" .= name,
-        "schema_version" .= version
+      [ "attributes" .= attributes',
+        "schema_name" .= name',
+        "schema_version" .= version'
       ]
 
 newtype SchemaId = SchemaId {schemaId :: String} deriving (Eq, Show)
@@ -163,12 +179,62 @@ newtype SchemaId = SchemaId {schemaId :: String} deriving (Eq, Show)
 instance FromJSON SchemaId where
   parseJSON :: Value -> Parser SchemaId
   parseJSON = withObject "SchemaId" $ \obj -> do
-    schemaId <- obj .: "schema_id"
-    return (SchemaId {schemaId = schemaId})
+    schemaId' <- obj .: "schema_id"
+    return (SchemaId {schemaId = schemaId'})
 
 instance ToJSON SchemaId where
   toJSON :: SchemaId -> Value
-  toJSON SchemaId {schemaId = schemaId} =
+  toJSON SchemaId {schemaId = schemaId'} =
     object
-      [ "schema_id" .= schemaId
+      [ "schema_id" .= schemaId'
       ]
+
+data Attribute = Attribute
+  { name :: !String,
+    value :: !String
+  }
+  deriving (Eq, Show, Generic)
+
+instance ToJSON Attribute
+
+newtype CredentialPreview = CredentialPreview {attributes :: [Attribute]} deriving (Eq, Show)
+
+instance ToJSON CredentialPreview where
+  toJSON :: CredentialPreview -> Value
+  toJSON CredentialPreview {attributes = attributes'} =
+    object
+      [ "@type" .= ("https://didcomm.org/issue-credential/2.0/credential-preview" :: String),
+        "attributes" .= attributes'
+      ]
+
+data CredentialOffer = CredentialOffer
+  { connectionId :: !String,
+    definitionId :: !String,
+    credentialPreview :: !CredentialPreview
+  }
+  deriving (Eq, Show)
+
+instance ToJSON CredentialOffer where
+  toJSON :: CredentialOffer -> Value
+  toJSON
+    CredentialOffer
+      { connectionId = connectionId',
+        credentialPreview = preview,
+        definitionId = definitionId'
+      } =
+      object
+        [ "connection_id" .= connectionId',
+          "cred_def_id" .= definitionId',
+          "credential_preview" .= preview
+        ]
+
+newtype CredentialDefinitionIds = CredentialDefinitionIds
+  { ids :: [String]
+  }
+  deriving (Eq, Show)
+
+instance FromJSON CredentialDefinitionIds where
+  parseJSON :: Value -> Parser CredentialDefinitionIds
+  parseJSON = withObject "CredentialDefinitionIds" $ \obj -> do
+    ids' <- obj .: "credential_definition_ids"
+    return (CredentialDefinitionIds {ids = ids'})

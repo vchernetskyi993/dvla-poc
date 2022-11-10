@@ -22,6 +22,7 @@ import Control.Monad.IO.Class (liftIO)
 import Data.Aeson
   ( FromJSON,
     Object,
+    ToJSON (toJSONList),
     Value (Array, Object),
     encode,
     object,
@@ -74,7 +75,9 @@ data State = State
   { messages :: Map String String,
     schemaId :: UUID,
     createSchemaTriggered :: MVar Int,
-    createDefinitionTriggered :: MVar Int
+    createDefinitionTriggered :: MVar Int,
+    definitionId :: UUID,
+    credentialOffers :: MVar [Value]
   }
 
 type API =
@@ -92,8 +95,14 @@ type API =
              :> ReqBody '[JSON] Value
              :> Post '[JSON] Value
            :<|> "credential-definitions"
+             :> ( ReqBody '[JSON] Value
+                    :> Post '[JSON] Value
+                    :<|> "created" :> Get '[JSON] Value
+                )
+           :<|> "issue-credential"
+             :> "send-offer"
              :> ReqBody '[JSON] Value
-             :> Post '[JSON] Value
+             :> PostNoContent
        )
 
 newtype Message = Message {content :: String} deriving (Eq, Show, Generic)
@@ -127,7 +136,8 @@ server state () =
       :<|> saveMessage state
   )
     :<|> createSchema state
-    :<|> createDefinition state
+    :<|> (createDefinition state :<|> fetchDefinitions state)
+    :<|> issueCredential state
 
 saveMessage :: State -> String -> Message -> Handler NoContent
 saveMessage state connection (Message text) = do
@@ -182,6 +192,21 @@ createDefinition
         object
           [ "schema_id" .= toString schemaId'
           ]
+
+fetchDefinitions :: State -> Handler Value
+fetchDefinitions
+  State
+    { definitionId = definitionId'
+    } =
+    return $
+      object
+        [ "credential_definition_ids" .= toJSONList [toString definitionId']
+        ]
+
+issueCredential :: State -> Value -> Handler NoContent
+issueCredential State {credentialOffers = credentialOffers'} body = do
+  liftIO $ modifyMVar_ credentialOffers' $ pure . (body :)
+  return NoContent
 
 assertBody :: Value -> Value -> Handler ()
 assertBody actual expected = when (actual /= expected) $ do

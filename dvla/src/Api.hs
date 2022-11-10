@@ -11,6 +11,8 @@ module Api
     Results (..),
     ConnectionDto (..),
     Message (..),
+    Credential (..),
+    License (..),
   )
 where
 
@@ -46,7 +48,7 @@ type API =
              :> PostNoContent
            :<|> "schemas" :> PostNoContent
            :<|> "licenses"
-             :> ReqBody '[JSON] License
+             :> ReqBody '[JSON] (Credential License)
              :> PostNoContent
        )
     :<|> Raw
@@ -106,12 +108,20 @@ instance ToJSON Message
 instance FromJSON Message
 
 data License = License
-  { firstName :: String,
-    lastName :: String,
-    category :: String
+  { firstName :: !String,
+    lastName :: !String,
+    category :: !String
   }
   deriving (Eq, Show, Generic)
 
 instance ToJSON License
 
 instance FromJSON License
+
+data Credential a = Credential
+  { connectionId :: !String,
+    attributes :: !a
+  }
+  deriving (Eq, Show, Generic)
+
+instance FromJSON (Credential License)
