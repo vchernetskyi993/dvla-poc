@@ -225,7 +225,8 @@ instance ToJSON CredentialOffer where
       object
         [ "connection_id" .= connectionId',
           "cred_def_id" .= definitionId',
-          "credential_preview" .= preview
+          "credential_preview" .= preview,
+          "auto_issue" .= True
         ]
 
 newtype CredentialDefinitionIds = CredentialDefinitionIds

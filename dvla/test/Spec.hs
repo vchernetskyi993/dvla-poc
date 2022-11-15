@@ -156,7 +156,8 @@ spec =
                                   attribute "last_name" "Doe",
                                   attribute "category" "B1"
                                 ]
-                          ]
+                          ],
+                      "auto_issue" .= True
                     ]
 
 withFramework :: ActionWith (Int, State) -> ActionWith (Int, State)
