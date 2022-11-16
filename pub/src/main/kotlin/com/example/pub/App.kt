@@ -14,6 +14,10 @@ class ApiRoutes : RouteBuilder() {
         restConfiguration()
             .port(System.getenv("SERVER_PORT") ?: restConfiguration.port)
 
+        // TODO: serve SPA for printing proof request QR
+        // TODO: endpoint to create proof request and return link to it
+        // TODO: endpoint to return present-proof record
+
         rest("/api") {
             get("/greeting") {
                 to("direct:hello")
