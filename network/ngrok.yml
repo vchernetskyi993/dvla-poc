@@ -6,5 +6,8 @@ tunnels:
   framework.dvla:
     addr: framework.dvla:8000
     proto: http
+  framework.pub:
+    addr: framework.pub:8010
+    proto: http
 
 web_addr: 0.0.0.0:4040

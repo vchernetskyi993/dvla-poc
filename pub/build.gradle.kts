@@ -9,7 +9,11 @@ val restAssuredVersion: String by project
 val testContainersVersion: String by project
 
 repositories {
+    mavenLocal()
     mavenCentral()
+    maven {
+        url = uri("https://repository.jboss.org/nexus/content/repositories/thirdparty-releases/")
+    }
 }
 
 application {
@@ -20,6 +24,7 @@ dependencies {
     implementation("org.apache.camel:camel-core:$camelVersion")
     implementation("org.apache.camel:camel-main:$camelVersion")
     implementation("org.apache.camel:camel-netty-http:$camelVersion")
+    implementation("org.apache.camel:camel-hyperledger-aries:3.20.0-SNAPSHOT")
 
     implementation("nl.topicus.overheid:kamel:1.0")
 

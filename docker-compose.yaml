@@ -17,12 +17,12 @@ services:
       dockerfile: ./network/Dockerfile.framework
     entrypoint: /scripts/start-framework.sh
     environment:
+      - ORG=dvla
       - AGENT_LABEL=DVLA Agent
       - FRAMEWORK_PORT=8000
       - ADMIN_PORT=8001
       - ADMIN_SECRET=${DVLA_ADMIN_SECRET}
-      - CONTROLLER_HOST=controller.dvla
-      - CONTROLLER_PORT=8002
+      - WEBHOOK_URL=http://controller.dvla:8002/api/webhooks
       - WALLET_NAME=${DVLA_WALLET_NAME}
       - WALLET_KEY=${DVLA_WALLET_KEY}
       - LEDGER_URL=http://test.bcovrin.vonx.io
@@ -46,3 +46,26 @@ services:
     ports:
       - "8002:8002"
     stop_signal: SIGINT
+
+  framework.pub:
+    build:
+      dockerfile: ./network/Dockerfile.framework
+    entrypoint: /scripts/start-framework.sh
+    environment:
+      - ORG=pub
+      - AGENT_LABEL=Pub Agent
+      - FRAMEWORK_PORT=8010
+      - ADMIN_PORT=8011
+      - ADMIN_SECRET=${PUB_ADMIN_SECRET}
+      - WEBHOOK_URL=http://controller.pub:8012/webhooks
+      - WALLET_NAME=${PUB_WALLET_NAME}
+      - WALLET_KEY=${PUB_WALLET_KEY}
+      - LEDGER_URL=http://test.bcovrin.vonx.io
+    ports:
+      - "8010:8010"
+      - "8011:8011"
+    volumes:
+      - ./network/start-framework.sh:/scripts/start-framework.sh
+    stop_signal: SIGKILL
+    depends_on:
+      - ngrok

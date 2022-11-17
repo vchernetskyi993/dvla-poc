@@ -22,7 +22,8 @@ fi
 
 while [ -z "$NGROK_ENDPOINT" ]; do
     echo "Fetching end point from ngrok service"
-    NGROK_ENDPOINT=$(curl ngrok:4040/api/tunnels | jq -r '.tunnels[] | select(.name=="framework.dvla") | .public_url')
+    NGROK_ENDPOINT=$(curl ngrok:4040/api/tunnels |
+        jq --arg name "framework.$ORG" -r '.tunnels[] | select(.name==$name) | .public_url')
 
     if [ -z "$NGROK_ENDPOINT" ]; then
         echo "ngrok not ready, sleeping 5 seconds...."
@@ -38,7 +39,7 @@ exec aca-py start \
     --outbound-transport http \
     --admin '0.0.0.0' "$ADMIN_PORT" \
     --admin-api-key "$ADMIN_SECRET" \
-    --webhook-url http://"$CONTROLLER_HOST":"$CONTROLLER_PORT"/api/webhooks \
+    --webhook-url "$WEBHOOK_URL" \
     --genesis-url "$LEDGER_URL"/genesis \
     --label "$AGENT_LABEL" \
     --wallet-type "askar" \
