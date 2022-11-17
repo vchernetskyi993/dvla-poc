@@ -8,6 +8,9 @@ const app = express();
 app.use(
   "/api",
   createProxyMiddleware({
+    pathRewrite: {
+      "^/api": "",
+    },
     target: process.env.CONTROLLER_URL,
   })
 );

@@ -1,6 +1,7 @@
 package com.example.pub
 
 import nl.topicus.overheid.kamel.route.rest.get
+import nl.topicus.overheid.kamel.route.rest.post
 import nl.topicus.overheid.kamel.route.rest.rest
 import org.apache.camel.builder.RouteBuilder
 import org.apache.camel.main.Main
@@ -14,16 +15,25 @@ class ApiRoutes : RouteBuilder() {
         restConfiguration()
             .port(System.getenv("SERVER_PORT") ?: restConfiguration.port)
 
-        rest("") {
-            // TODO: endpoint to create proof request and return link to it
-            // TODO: endpoint to return present-proof record
-            get("/greeting") {
-                to("direct:hello")
+        rest("/proofs") {
+            post("") {
+                produces("application/json")
+                to("direct:createProofRequest")
+            }
+            get("/{requestId}") {
+                produces("application/json")
+                to("direct:presentProofRequest")
             }
         }
 
-        from("direct:hello")
+        // TODO: create proof request and return link to it
+        from("direct:createProofRequest")
             .transform()
-            .constant("Hello, World!")
+            .simple("{\"url\": \"my-url\"}")
+
+        // TODO: return present-proof record
+        from("direct:presentProofRequest")
+            .transform()
+            .simple("{\"id\": \"\${headers.requestId}\"}")
     }
 }
