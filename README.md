@@ -54,3 +54,7 @@ Personal learning POC project to practice DIDs and Hyperledger Aries. No product
 4. Issue driver license to mobile agent (don't forget to set correct `connectionId`):
    `curl -i -X POST -H "Content-Type: application/json" -d '{"connectionId": "1c50dea2-1915-4a0b-b0bb-7477497b4cd4", "attributes": {"firstName": "Alice", "lastName": "Doe", "category":"B1"}}' localhost:8002/api/licenses`. 
    You should see credential offer in Bifold. Accept it.
+
+TODO:
+- add pub requesting proofs
+- add revocation
