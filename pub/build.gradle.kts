@@ -39,6 +39,7 @@ dependencies {
     testImplementation("org.testcontainers:junit-jupiter:$testContainersVersion")
     testImplementation("io.rest-assured:rest-assured:$restAssuredVersion")
     testImplementation("io.rest-assured:kotlin-extensions:$restAssuredVersion")
+    testImplementation("org.mock-server:mockserver-netty:5.14.0")
 }
 
 tasks.withType<Test> {
