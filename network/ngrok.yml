@@ -9,5 +9,8 @@ tunnels:
   framework.pub:
     addr: framework.pub:8010
     proto: http
+  web.pub:
+    addr: web.pub:8013
+    proto: http
 
 web_addr: 0.0.0.0:4040

@@ -52,9 +52,12 @@ Personal learning POC project to practice DIDs and Hyperledger Aries. No product
 3. Create schema and credential definition for driver license: `curl -i -X POST localhost:8002/api/schemas`.
 
 4. Issue driver license to mobile agent (don't forget to set correct `connectionId`):
-   `curl -i -X POST -H "Content-Type: application/json" -d '{"connectionId": "1c50dea2-1915-4a0b-b0bb-7477497b4cd4", "attributes": {"firstName": "Alice", "lastName": "Doe", "category":"B1"}}' localhost:8002/api/licenses`. 
+   `curl -i -X POST -H "Content-Type: application/json" -d '{"connectionId": "a37f2387-f43d-4aeb-a1bf-d8f561a788e2", "attributes": {"firstName": "Alice", "lastName": "Doe", "category":"B1"}}' localhost:8002/api/licenses`.
    You should see credential offer in Bifold. Accept it.
 
+5. Go to Pub UI at `localhost:8013`. Generate proof request and scan it with Bifold.
+   You should be able to prove your name and age using fresh driver license.
+
 TODO:
-- add pub requesting proofs
+
 - add revocation

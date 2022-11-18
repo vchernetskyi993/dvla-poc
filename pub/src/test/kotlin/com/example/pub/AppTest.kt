@@ -12,6 +12,8 @@ import org.testcontainers.junit.jupiter.Container
 import org.testcontainers.junit.jupiter.Testcontainers
 import java.nio.file.Paths
 
+// TODO: test rest interactions
+
 @Testcontainers
 class AppTest {
 

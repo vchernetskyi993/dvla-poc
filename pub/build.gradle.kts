@@ -9,7 +9,10 @@ val restAssuredVersion: String by project
 val testContainersVersion: String by project
 
 repositories {
-    mavenLocal()
+    maven {
+        // FIXME: remove when aries component is published
+        url = file("libs").toURI()
+    }
     mavenCentral()
     maven {
         url = uri("https://repository.jboss.org/nexus/content/repositories/thirdparty-releases/")

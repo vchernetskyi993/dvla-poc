@@ -30,14 +30,13 @@ services:
       - "8000:8000"
       - "8001:8001"
     volumes:
-      - ./network/start-framework.sh:/scripts/start-framework.sh
+      - ./network/:/scripts/
     stop_signal: SIGKILL
     depends_on:
       - ngrok
 
   controller.dvla:
-    build:
-      context: dvla
+    build: dvla
     environment:
       - SERVER_PORT=8002
       - FRAMEWORK_HOST=framework.dvla
@@ -65,7 +64,33 @@ services:
       - "8010:8010"
       - "8011:8011"
     volumes:
-      - ./network/start-framework.sh:/scripts/start-framework.sh
+      - ./network/:/scripts/
     stop_signal: SIGKILL
     depends_on:
       - ngrok
+
+  controller.pub:
+    build: pub
+    entrypoint: /scripts/start-service.sh /app/bin/pub
+    environment:
+      - SERVER_PORT=8012
+      - ACAPY_HOSTNAME=framework.pub
+      - ACAPY_ADMIN_PORT=8011
+      - ACAPY_API_KEY=${PUB_ADMIN_SECRET}
+      - ACAPY_USER_PORT=8010
+      - TUNNEL_NAME=web.pub
+    ports:
+      - "8012:8012"
+    volumes:
+      - ./network/:/scripts/
+    depends_on:
+      - ngrok
+
+  web.pub:
+    build: pub/ui
+    environment:
+      - SERVER_PORT=8013
+      - CONTROLLER_URL=http://controller.pub:8012
+    ports:
+      - "8013:8013"
+    stop_signal: SIGKILL

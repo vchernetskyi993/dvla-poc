@@ -2,6 +2,8 @@
 
 set -e
 
+source /scripts/util.sh
+
 if [ -f .seed ]; then
     echo "Using existing public DID."
     SEED=$(cat .seed)
@@ -20,16 +22,7 @@ else
         "$LEDGER_URL"/register
 fi
 
-while [ -z "$NGROK_ENDPOINT" ]; do
-    echo "Fetching end point from ngrok service"
-    NGROK_ENDPOINT=$(curl ngrok:4040/api/tunnels |
-        jq --arg name "framework.$ORG" -r '.tunnels[] | select(.name==$name) | .public_url')
-
-    if [ -z "$NGROK_ENDPOINT" ]; then
-        echo "ngrok not ready, sleeping 5 seconds...."
-        sleep 5
-    fi
-done
+TUNNEL_NAME="framework.$ORG" wait_for_ngrok
 
 echo "Starting aca-py agent with endpoint [$NGROK_ENDPOINT]"
 
