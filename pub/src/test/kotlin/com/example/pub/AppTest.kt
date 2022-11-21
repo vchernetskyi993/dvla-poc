@@ -3,6 +3,7 @@ package com.example.pub
 import io.restassured.RestAssured
 import io.restassured.module.kotlin.extensions.Then
 import io.restassured.module.kotlin.extensions.When
+import org.hamcrest.Matchers.equalTo
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -12,6 +13,7 @@ import org.mockserver.model.HttpRequest.request
 import org.mockserver.model.HttpResponse.response
 import org.mockserver.model.JsonBody.json
 import org.mockserver.model.MediaType
+import org.mockserver.verify.VerificationTimes.once
 import org.slf4j.LoggerFactory
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.output.Slf4jLogConsumer
@@ -53,46 +55,48 @@ class AppTest {
 
     @Test
     fun shouldCreateProofRequest() {
-        mockServer.`when`(
-            request()
-                .withMethod("POST")
-                .withPath("/present-proof/create-request")
-                .withBody(
-                    json(
-                        """
+        val createRequestExpectation =
+            mockServer.`when`(
+                request()
+                    .withMethod("POST")
+                    .withPath("/present-proof/create-request")
+                    .withBody(
+                        json(
+                            """
                         {
-                            "auto_verify": true, 
-                            "proof_request": {
-                                "name" : "Proof request",
-                                "version" : "1.0",
-                                "requested_attributes": {
-                                    "0_first_name_uuid": {
-                                        "name": "first_name",
-                                        "restrictions": [
-                                            {
-                                                "schema_name": "driver_license"
-                                            }
-                                        ]
-                                    }
-                                },
-                                "requested_predicates": {}
+                          "auto_verify": true, 
+                          "proof_request": {
+                            "name" : "Proof request",
+                            "version" : "1.0",
+                            "requested_attributes": {
+                              "0_first_name_uuid": {
+                                "name": "first_name",
+                                "restrictions": [{"schema_name": "driver_license"}]
+                              }
+                            },
+                            "requested_predicates": {
+                              "0_dob_GE_uuid": {
+                                "name": "dob",
+                                "p_type": "<=",
+                                "restrictions": [{"schema_name": "driver_license"}]
+                              }
                             }
+                          }
                         }""".trimIndent()
+                        )
                     )
-                )
-        )
-            .respond(
+            ).respond(
                 response()
                     .withContentType(MediaType.APPLICATION_JSON)
                     .withBody("{\"presentation_exchange_id\": \"$REQUEST_ID\"}")
-            )
+            )[0]
 
         When {
             post("/proofs")
         } Then {
             statusCode(200)
-            // FIXME: test assumes wrong content-type
-//            body("url", equalTo("/proofs/$REQUEST_ID"))
+            body("url", equalTo("/proofs/$REQUEST_ID"))
+            mockServer.verify(createRequestExpectation.id, once())
         }
     }
 }

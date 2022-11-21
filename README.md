@@ -46,13 +46,13 @@ Personal learning POC project to practice DIDs and Hyperledger Aries. No product
 
    - Bifold -> DVLA: In Bifold go to contacts, newest contact should be `DVLA Agent`.
      Send some message. You should see message in controller logs.
-   - DVLA -> Bifold: Issue `curl -i -X POST -H "Content-Type: application/json" -d '{"connectionId": "1c50dea2-1915-4a0b-b0bb-7477497b4cd4", "text": "Hello!"}' localhost:8002/api/messages` to send "Hello!" message to mobile app.
+   - DVLA -> Bifold: Issue `curl -i -X POST -H "Content-Type: application/json" -d '{"connectionId": "e291815e-c58d-4d36-90ed-6a6cc63c23ca", "text": "Hello!"}' localhost:8002/api/messages` to send "Hello!" message to mobile app.
      - To find `connectionId` either check controller logs or issue `curl localhost:8002/api/connections`.
 
 3. Create schema and credential definition for driver license: `curl -i -X POST localhost:8002/api/schemas`.
 
 4. Issue driver license to mobile agent (don't forget to set correct `connectionId`):
-   `curl -i -X POST -H "Content-Type: application/json" -d '{"connectionId": "a37f2387-f43d-4aeb-a1bf-d8f561a788e2", "attributes": {"firstName": "Alice", "lastName": "Doe", "category":"B1"}}' localhost:8002/api/licenses`.
+   `curl -i -X POST -H "Content-Type: application/json" -d '{"connectionId": "e291815e-c58d-4d36-90ed-6a6cc63c23ca", "attributes": {"firstName": "Alice", "lastName": "Doe", "category":"B1", "dateOfBirth": "19891109"}}' localhost:8002/api/licenses`.
    You should see credential offer in Bifold. Accept it.
 
 5. Go to Pub UI at `localhost:8013`. Generate proof request and scan it with Bifold.

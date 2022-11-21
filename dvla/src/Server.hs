@@ -12,6 +12,7 @@ import Api
     License (License, category, firstName, lastName),
     Message (Message, connectionId),
     Results,
+    dateOfBirth,
     name,
     text,
   )
@@ -100,7 +101,7 @@ generateLicenseSchema client = do
     performFrameworkRequest client $
       createSchema $
         Schema
-          { attributes = ["first_name", "last_name", "category"],
+          { attributes = ["first_name", "last_name", "category", "dob"],
             name = "driver_license",
             version = "1.0"
           }
@@ -121,7 +122,13 @@ toCredentialOffer :: Credential License -> String -> CredentialOffer
 toCredentialOffer
   Credential
     { connectionId = connectionId',
-      attributes = License {firstName = firstName', lastName = lastName', category = category'}
+      attributes =
+        License
+          { firstName = firstName',
+            lastName = lastName',
+            category = category',
+            dateOfBirth = dob
+          }
     }
   definitionId' =
     CredentialOffer
@@ -132,7 +139,8 @@ toCredentialOffer
             { attributes =
                 [ Attribute {name = "first_name", value = firstName'},
                   Attribute {name = "last_name", value = lastName'},
-                  Attribute {name = "category", value = category'}
+                  Attribute {name = "category", value = category'},
+                  Attribute {name = "dob", value = dob}
                 ]
             }
       }

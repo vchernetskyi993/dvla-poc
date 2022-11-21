@@ -123,7 +123,8 @@ spec =
                   attributes: {
                     firstName: "Alice", 
                     lastName: "Doe", 
-                    category: "B1"
+                    category: "B1",
+                    dateOfBirth: "19891109"
                   }
                 }|]
                 `shouldRespondWith` 204
@@ -154,7 +155,8 @@ spec =
                               .= toJSONList
                                 [ attribute "first_name" "Alice",
                                   attribute "last_name" "Doe",
-                                  attribute "category" "B1"
+                                  attribute "category" "B1",
+                                  attribute "dob" "19891109"
                                 ]
                           ],
                       "auto_issue" .= True

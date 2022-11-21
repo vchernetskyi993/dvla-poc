@@ -110,7 +110,8 @@ instance FromJSON Message
 data License = License
   { firstName :: !String,
     lastName :: !String,
-    category :: !String
+    category :: !String,
+    dateOfBirth :: !String
   }
   deriving (Eq, Show, Generic)
 
