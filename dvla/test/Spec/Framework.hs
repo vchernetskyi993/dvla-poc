@@ -100,9 +100,11 @@ type API =
                     :<|> "created" :> Get '[JSON] Value
                 )
            :<|> "issue-credential"
-             :> "send-offer"
-             :> ReqBody '[JSON] Value
-             :> PostNoContent
+             :> ( "send-offer"
+                    :> ReqBody '[JSON] Value
+                    :> PostNoContent
+                    :<|> "records" :> Get '[JSON] Value
+                )
        )
 
 newtype Message = Message {content :: String} deriving (Eq, Show, Generic)
@@ -137,7 +139,7 @@ server state () =
   )
     :<|> createSchema state
     :<|> (createDefinition state :<|> fetchDefinitions state)
-    :<|> issueCredential state
+    :<|> (issueCredential state :<|> fetchCredentials)
 
 saveMessage :: State -> String -> Message -> Handler NoContent
 saveMessage state connection (Message text) = do
@@ -209,6 +211,42 @@ issueCredential :: State -> Value -> Handler NoContent
 issueCredential State {credentialOffers = credentialOffers'} body = do
   liftIO $ modifyMVar_ credentialOffers' $ pure . (body :)
   return NoContent
+
+fetchCredentials :: Handler Value
+fetchCredentials =
+  return $
+    object
+      [ "results"
+          .= [ object
+                 [ "revoc_reg_id" .= ("qwetrtyui" :: String),
+                   "revocation_id" .= ("1" :: String),
+                   "credential_offer_dict"
+                     .= object
+                       [ "credential_preview"
+                           .= object
+                             [ "attributes"
+                                 .= [ object
+                                        [ "name" .= ("first_name" :: String),
+                                          "value" .= ("Alice" :: String)
+                                        ],
+                                      object
+                                        [ "name" .= ("last_name" :: String),
+                                          "value" .= ("Doe" :: String)
+                                        ],
+                                      object
+                                        [ "name" .= ("category" :: String),
+                                          "value" .= ("B1" :: String)
+                                        ],
+                                      object
+                                        [ "name" .= ("dob" :: String),
+                                          "value" .= ("19891109" :: String)
+                                        ]
+                                    ]
+                             ]
+                       ]
+                 ]
+             ]
+      ]
 
 assertBody :: Value -> Value -> Handler ()
 assertBody actual expected = when (actual /= expected) $ do

@@ -18,13 +18,15 @@ module FrameworkClient
     Schema (..),
     SchemaId (..),
     createDefinition,
-    CredentialDefinition(..),
+    CredentialDefinition (..),
     fetchDefinitionIds,
     CredentialDefinitionIds (..),
     issueCredential,
     CredentialOffer (..),
     CredentialPreview (..),
     Attribute (..),
+    fetchCredentials,
+    CredentialRecord (..),
   )
 where
 
@@ -86,9 +88,11 @@ type API =
              :<|> "created" :> Get '[JSON] CredentialDefinitionIds
          )
     :<|> "issue-credential"
-      :> "send-offer"
-      :> ReqBody '[JSON] CredentialOffer
-      :> PostNoContent
+      :> ( "send-offer"
+             :> ReqBody '[JSON] CredentialOffer
+             :> PostNoContent
+             :<|> "records" :> Get '[JSON] (Results CredentialRecord)
+         )
 
 newtype SendMessageBody = SendMessageBody
   { content :: String
@@ -136,10 +140,11 @@ createSchema :: Schema -> ClientM SchemaId
 createDefinition :: CredentialDefinition -> ClientM NoContent
 fetchDefinitionIds :: ClientM CredentialDefinitionIds
 issueCredential :: CredentialOffer -> ClientM NoContent
+fetchCredentials :: ClientM (Results CredentialRecord)
 ( (createInvitation :<|> getConnections :<|> sendMessage)
     :<|> createSchema
     :<|> (createDefinition :<|> fetchDefinitionIds)
-    :<|> issueCredential
+    :<|> (issueCredential :<|> fetchCredentials)
   ) = client api
 
 createFrameworkClient :: FrameworkClientConfig -> IO ClientEnv
@@ -244,3 +249,24 @@ instance FromJSON CredentialDefinitionIds where
   parseJSON = withObject "CredentialDefinitionIds" $ \obj -> do
     ids' <- obj .: "credential_definition_ids"
     return (CredentialDefinitionIds {ids = ids'})
+
+data CredentialRecord = CredentialRecord
+  { revocationId :: !String,
+    revocationRegistryId :: !String,
+    attributes :: ![Attribute]
+  }
+  deriving (Eq, Show)
+
+instance FromJSON CredentialRecord where
+  parseJSON :: Value -> Parser CredentialRecord
+  parseJSON = withObject "CredentialRecord" $ \obj -> do
+    revocationId' <- obj .: "revocation_id"
+    return
+      ( CredentialRecord
+          { revocationId = revocationId',
+            revocationRegistryId = error "TODO: retrieve registry ID",
+            attributes = error "TODO: retrieve attributes"
+          }
+      )
+
+instance FromJSON (Results CredentialRecord)

@@ -161,6 +161,27 @@ spec =
                           ],
                       "auto_issue" .= True
                     ]
+          
+          describe "GET /api/licenses" $
+            it "should fetch driver licenses" $ do
+              get "/api/licenses"
+                `shouldRespondWith` [json|{
+                results: [
+                  {
+                    license: {
+                      firstName: "Alice", 
+                      lastName: "Doe", 
+                      category: "B1",
+                      dateOfBirth: "19891109"
+                    },
+                    revocation: {
+                      id: "1",
+                      registry: "qwetrtyui"
+                    }
+                  }
+                ]
+              }|]
+              
 
 withFramework :: ActionWith (Int, State) -> ActionWith (Int, State)
 withFramework action (port, state) =

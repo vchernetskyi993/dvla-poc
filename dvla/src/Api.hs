@@ -13,6 +13,7 @@ module Api
     Message (..),
     Credential (..),
     License (..),
+    LicenseData (..),
   )
 where
 
@@ -48,10 +49,11 @@ type API =
              :> PostNoContent
            :<|> "schemas" :> PostNoContent
            :<|> "licenses"
-             :> ReqBody '[JSON] (Credential License)
-             :> PostNoContent
-            --  TODO: list licenses
-            -- TODO: revoke license
+             :> ( ReqBody '[JSON] (Credential License)
+                    :> PostNoContent
+                    :<|> Get '[JSON] (Results LicenseData)
+                )
+                -- TODO: revoke license
        )
     :<|> Raw
 
@@ -128,3 +130,21 @@ data Credential a = Credential
   deriving (Eq, Show, Generic)
 
 instance FromJSON (Credential License)
+
+data LicenseData = LicenseData
+  { license :: !License,
+    revocation :: !Revocation
+  }
+  deriving (Eq, Show, Generic)
+
+instance ToJSON LicenseData
+
+instance ToJSON (Results LicenseData)
+
+data Revocation = Revocation
+  { id :: !String,
+    registry :: !String
+  }
+  deriving (Eq, Show, Generic)
+
+instance ToJSON Revocation

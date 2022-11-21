@@ -10,6 +10,7 @@ import Api
     Credential (Credential, attributes, connectionId),
     Invitation (Invitation),
     License (License, category, firstName, lastName),
+    LicenseData,
     Message (Message, connectionId),
     Results,
     dateOfBirth,
@@ -40,7 +41,7 @@ import FrameworkClient
     fetchDefinitionIds,
     getConnections,
     issueCredential,
-    sendMessage,
+    sendMessage, CredentialRecord, fetchCredentials,
   )
 import Servant
   ( Handler,
@@ -65,6 +66,7 @@ server client =
       :<|> sendMessage' client
       :<|> generateLicenseSchema client
       :<|> issueLicense client
+      :<|> fetchLicenses client
   )
     :<|> serveDirectoryFileServer "ui/build"
 
@@ -119,6 +121,15 @@ issueLicense client credential = do
       toCredentialOffer credential $
         head $
           ids definitionId'
+
+fetchLicenses :: ClientEnv -> Handler (Results LicenseData)
+fetchLicenses client = do
+  credentials <- performFrameworkRequest client fetchCredentials
+
+  return $ toLicenseData <$> credentials
+
+toLicenseData :: CredentialRecord -> LicenseData
+toLicenseData record = error "TODO: implement conversion"
 
 toCredentialOffer :: Credential License -> String -> CredentialOffer
 toCredentialOffer
