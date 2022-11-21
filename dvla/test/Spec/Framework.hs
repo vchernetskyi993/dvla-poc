@@ -190,7 +190,9 @@ createDefinition
     where
       expectedBody =
         object
-          [ "schema_id" .= toString schemaId'
+          [ "schema_id" .= toString schemaId',
+            "support_revocation" .= True,
+            "revocation_registry_size" .= (100 :: Int)
           ]
 
 fetchDefinitions :: State -> Handler Value

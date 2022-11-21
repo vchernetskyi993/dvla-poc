@@ -31,9 +31,16 @@ Personal learning POC project to practice DIDs and Hyperledger Aries. No product
 
 1. Set environment variables in `.env` file. See instructions for each variable there.
 
-2. Start DVLA network: `docker compose up`.
+2. Build Indy Tails Server:
+```shell
+git clone https://github.com/bcgov/indy-tails-server
+cd indy-tails-server
+docker build . -t bcgovimages/tails-server -f docker/Dockerfile.tails-server
+```
 
-3. Connect Alice mobile device to DVLA network. Theoretically should work with different mobile agents,
+3. Start DVLA network: `docker compose up`.
+
+4. Connect Alice mobile device to DVLA network. Theoretically should work with different mobile agents,
    but was actually tested with Aries Bifold agent. Follow instructions for Aries Bifold setup in their [repo](https://github.com/hyperledger/aries-mobile-agent-react-native).
    - Set `MEDIATOR_URL` to Indicio public mediator invitation from [here](https://indicio-tech.github.io/mediator/).
    - Set `GENESIS_URL` to BCovrin Test (http://test.bcovrin.vonx.io/genesis)
@@ -57,7 +64,3 @@ Personal learning POC project to practice DIDs and Hyperledger Aries. No product
 
 5. Go to Pub UI at `localhost:8013`. Generate proof request and scan it with Bifold.
    You should be able to prove your name and age using fresh driver license.
-
-TODO:
-
-- add revocation

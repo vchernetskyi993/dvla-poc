@@ -50,6 +50,8 @@ type API =
            :<|> "licenses"
              :> ReqBody '[JSON] (Credential License)
              :> PostNoContent
+            --  TODO: list licenses
+            -- TODO: revoke license
        )
     :<|> Raw
 

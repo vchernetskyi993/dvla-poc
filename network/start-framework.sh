@@ -23,11 +23,16 @@ else
 fi
 
 TUNNEL_NAME="framework.$ORG" wait_for_ngrok
+FRAMEWORK_ENDPOINT=$NGROK_ENDPOINT
 
-echo "Starting aca-py agent with endpoint [$NGROK_ENDPOINT]"
+NGROK_ENDPOINT=
+TUNNEL_NAME="tails-server" NGROK_URL=ngrok-1:4041 wait_for_ngrok
+TAILS_ENDPOINT=$NGROK_ENDPOINT
+
+echo "Starting aca-py agent with endpoint [$FRAMEWORK_ENDPOINT]"
 
 exec aca-py start \
-    --endpoint "$NGROK_ENDPOINT" \
+    --endpoint "$FRAMEWORK_ENDPOINT" \
     --inbound-transport http '0.0.0.0' "$FRAMEWORK_PORT" \
     --outbound-transport http \
     --admin '0.0.0.0' "$ADMIN_PORT" \
@@ -40,7 +45,10 @@ exec aca-py start \
     --wallet-key "$WALLET_KEY" \
     --seed "$SEED" \
     --auto-provision \
-    --auto-accept-requests
+    --auto-accept-requests \
+    --notify-revocation \
+    --monitor-revocation-notification \
+    --tails-server-base-url "$TAILS_ENDPOINT"
 
 # agent-docker
 
@@ -59,20 +67,11 @@ exec aca-py start \
 # --auto-write-transactions \
 # --auto-create-revocation-transactions \
 
-# alice-kt
-
-# "--auto-accept-invites",
-# "--auto-store-credential"
-
 # faber.agent
 
 # "--auto-ping-connection",
 # "--auto-respond-messages",
 # "--preserve-exchange-records",
 # "--public-invites",
-# "--notify-revocation",
-# "--monitor-revocation-notification",
-# "--tails-server-base-url",
-# "http://4f3e-156-146-50-1.ngrok.io",
 # "--auto-accept-invites",
 # "--auto-store-credential"

@@ -27,10 +27,12 @@ import FrameworkClient
   ( Attribute (Attribute, name, value),
     Connection (Connection, connectionId, name, state),
     ConnectionState (Active),
+    CredentialDefinition (CredentialDefinition),
     CredentialDefinitionIds (ids),
     CredentialOffer (CredentialOffer, connectionId, credentialPreview, definitionId),
     CredentialPreview (CredentialPreview, attributes),
     Schema (Schema, attributes, name, version),
+    SchemaId (SchemaId, schemaId),
     SendMessageBody (SendMessageBody, content),
     createDefinition,
     createInvitation,
@@ -97,7 +99,7 @@ sendMessage' client Message {connectionId = cid, text = message} = do
 
 generateLicenseSchema :: ClientEnv -> Handler NoContent
 generateLicenseSchema client = do
-  schemaId <-
+  SchemaId {schemaId = schemaId'} <-
     performFrameworkRequest client $
       createSchema $
         Schema
@@ -106,7 +108,7 @@ generateLicenseSchema client = do
             version = "1.0"
           }
 
-  performFrameworkRequest client $ createDefinition schemaId
+  performFrameworkRequest client $ createDefinition $ CredentialDefinition schemaId'
 
 issueLicense :: ClientEnv -> Credential License -> Handler NoContent
 issueLicense client credential = do

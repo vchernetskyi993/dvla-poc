@@ -18,6 +18,7 @@ module FrameworkClient
     Schema (..),
     SchemaId (..),
     createDefinition,
+    CredentialDefinition(..),
     fetchDefinitionIds,
     CredentialDefinitionIds (..),
     issueCredential,
@@ -81,7 +82,7 @@ type API =
        )
     :<|> "schemas" :> ReqBody '[JSON] Schema :> Post '[JSON] SchemaId
     :<|> "credential-definitions"
-      :> ( ReqBody '[JSON] SchemaId :> PostNoContent
+      :> ( ReqBody '[JSON] CredentialDefinition :> PostNoContent
              :<|> "created" :> Get '[JSON] CredentialDefinitionIds
          )
     :<|> "issue-credential"
@@ -132,7 +133,7 @@ createInvitation :: ClientM Object
 getConnections :: ClientM (Results Connection)
 sendMessage :: String -> SendMessageBody -> ClientM NoContent
 createSchema :: Schema -> ClientM SchemaId
-createDefinition :: SchemaId -> ClientM NoContent
+createDefinition :: CredentialDefinition -> ClientM NoContent
 fetchDefinitionIds :: ClientM CredentialDefinitionIds
 issueCredential :: CredentialOffer -> ClientM NoContent
 ( (createInvitation :<|> getConnections :<|> sendMessage)
@@ -182,11 +183,15 @@ instance FromJSON SchemaId where
     schemaId' <- obj .: "schema_id"
     return (SchemaId {schemaId = schemaId'})
 
-instance ToJSON SchemaId where
-  toJSON :: SchemaId -> Value
-  toJSON SchemaId {schemaId = schemaId'} =
+newtype CredentialDefinition = CredentialDefinition {schemaId :: String} deriving (Eq, Show)
+
+instance ToJSON CredentialDefinition where
+  toJSON :: CredentialDefinition -> Value
+  toJSON CredentialDefinition {schemaId = schemaId'} =
     object
-      [ "schema_id" .= schemaId'
+      [ "schema_id" .= schemaId',
+        "support_revocation" .= True,
+        "revocation_registry_size" .= (100 :: Int)
       ]
 
 data Attribute = Attribute
