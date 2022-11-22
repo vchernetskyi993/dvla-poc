@@ -220,6 +220,7 @@ fetchCredentials =
           .= [ object
                  [ "revoc_reg_id" .= ("qwetrtyui" :: String),
                    "revocation_id" .= ("1" :: String),
+                   "connection_id" .= ("3333445566" :: String),
                    "credential_offer_dict"
                      .= object
                        [ "credential_preview"

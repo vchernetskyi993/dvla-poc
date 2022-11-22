@@ -177,7 +177,8 @@ spec =
                     revocation: {
                       id: "1",
                       registry: "qwetrtyui"
-                    }
+                    },
+                    connectionId: "3333445566"
                   }
                 ]
               }|]

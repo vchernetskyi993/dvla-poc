@@ -14,6 +14,7 @@ module Api
     Credential (..),
     License (..),
     LicenseData (..),
+    Revocation (..),
   )
 where
 
@@ -132,7 +133,8 @@ data Credential a = Credential
 instance FromJSON (Credential License)
 
 data LicenseData = LicenseData
-  { license :: !License,
+  { connectionId :: !String,
+    license :: !License,
     revocation :: !Revocation
   }
   deriving (Eq, Show, Generic)

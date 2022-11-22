@@ -10,11 +10,15 @@ import Api
     Credential (Credential, attributes, connectionId),
     Invitation (Invitation),
     License (License, category, firstName, lastName),
-    LicenseData,
+    LicenseData (LicenseData, connectionId),
     Message (Message, connectionId),
     Results,
+    Revocation (Revocation, id),
     dateOfBirth,
+    license,
     name,
+    registry,
+    revocation,
     text,
   )
 import Control.Monad (mfilter)
@@ -32,16 +36,20 @@ import FrameworkClient
     CredentialDefinitionIds (ids),
     CredentialOffer (CredentialOffer, connectionId, credentialPreview, definitionId),
     CredentialPreview (CredentialPreview, attributes),
+    CredentialRecord (CredentialRecord, attributes, connectionId),
     Schema (Schema, attributes, name, version),
     SchemaId (SchemaId, schemaId),
     SendMessageBody (SendMessageBody, content),
     createDefinition,
     createInvitation,
     createSchema,
+    fetchCredentials,
     fetchDefinitionIds,
     getConnections,
     issueCredential,
-    sendMessage, CredentialRecord, fetchCredentials,
+    revocationId,
+    revocationRegistryId,
+    sendMessage,
   )
 import Servant
   ( Handler,
@@ -129,7 +137,37 @@ fetchLicenses client = do
   return $ toLicenseData <$> credentials
 
 toLicenseData :: CredentialRecord -> LicenseData
-toLicenseData record = error "TODO: implement conversion"
+toLicenseData
+  CredentialRecord
+    { revocationId = revocationId',
+      revocationRegistryId = revocationRegistryId',
+      connectionId = connectionId',
+      attributes = attributes'
+    } =
+    LicenseData
+      { connectionId = connectionId',
+        license =
+          License
+            { firstName = firstName',
+              lastName = lastName',
+              category = category',
+              dateOfBirth = dateOfBirth'
+            },
+        revocation =
+          Revocation
+            { id = revocationId',
+              registry = revocationRegistryId'
+            }
+      }
+    where
+      getAttribute attrName =
+        value $
+          head $
+            filter (\Attribute {name = name'} -> name' == attrName) attributes'
+      firstName' = getAttribute "first_name"
+      lastName' = getAttribute "last_name"
+      category' = getAttribute "category"
+      dateOfBirth' = getAttribute "dob"
 
 toCredentialOffer :: Credential License -> String -> CredentialOffer
 toCredentialOffer

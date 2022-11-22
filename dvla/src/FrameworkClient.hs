@@ -34,6 +34,7 @@ import Api (Results)
 import Config (FrameworkClientConfig (port), host, secret)
 import Data.Aeson
   ( FromJSON (parseJSON),
+    Key,
     Object,
     ToJSON (toJSON),
     Value,
@@ -207,6 +208,8 @@ data Attribute = Attribute
 
 instance ToJSON Attribute
 
+instance FromJSON Attribute
+
 newtype CredentialPreview = CredentialPreview {attributes :: [Attribute]} deriving (Eq, Show)
 
 instance ToJSON CredentialPreview where
@@ -253,6 +256,7 @@ instance FromJSON CredentialDefinitionIds where
 data CredentialRecord = CredentialRecord
   { revocationId :: !String,
     revocationRegistryId :: !String,
+    connectionId :: !String,
     attributes :: ![Attribute]
   }
   deriving (Eq, Show)
@@ -261,12 +265,22 @@ instance FromJSON CredentialRecord where
   parseJSON :: Value -> Parser CredentialRecord
   parseJSON = withObject "CredentialRecord" $ \obj -> do
     revocationId' <- obj .: "revocation_id"
+    registryId' <- obj .: "revoc_reg_id"
+    connectionId' <- obj .: "connection_id"
+    attributes' <- obj .: "credential_offer_dict" .-> "credential_preview" .-> "attributes"
+    parsedAttributes <- parseJSON attributes'
     return
       ( CredentialRecord
           { revocationId = revocationId',
-            revocationRegistryId = error "TODO: retrieve registry ID",
-            attributes = error "TODO: retrieve attributes"
+            revocationRegistryId = registryId',
+            connectionId = connectionId',
+            attributes = parsedAttributes
           }
       )
 
 instance FromJSON (Results CredentialRecord)
+
+(.->) :: FromJSON a => Parser Object -> Key -> Parser a
+(.->) parser key = do
+  obj <- parser
+  obj .: key
