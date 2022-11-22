@@ -77,7 +77,8 @@ data State = State
     createSchemaTriggered :: MVar Int,
     createDefinitionTriggered :: MVar Int,
     definitionId :: UUID,
-    credentialOffers :: MVar [Value]
+    credentialOffers :: MVar [Value],
+    revocations :: MVar [Value]
   }
 
 type API =
@@ -105,6 +106,10 @@ type API =
                     :> PostNoContent
                     :<|> "records" :> Get '[JSON] Value
                 )
+           :<|> "revocation"
+             :> "revoke"
+             :> ReqBody '[JSON] Value
+             :> PostNoContent
        )
 
 newtype Message = Message {content :: String} deriving (Eq, Show, Generic)
@@ -140,6 +145,7 @@ server state () =
     :<|> createSchema state
     :<|> (createDefinition state :<|> fetchDefinitions state)
     :<|> (issueCredential state :<|> fetchCredentials)
+    :<|> revokeCredential state
 
 saveMessage :: State -> String -> Message -> Handler NoContent
 saveMessage state connection (Message text) = do
@@ -248,6 +254,11 @@ fetchCredentials =
                  ]
              ]
       ]
+
+revokeCredential :: State -> Value -> Handler NoContent
+revokeCredential State {revocations = revocations'} body = do
+  liftIO $ modifyMVar_ revocations' $ pure . (body :)
+  return NoContent
 
 assertBody :: Value -> Value -> Handler ()
 assertBody actual expected = when (actual /= expected) $ do

@@ -26,6 +26,7 @@ import GHC.Base (Alternative ((<|>)))
 import GHC.Generics (Generic)
 import Servant
   ( Capture,
+    DeleteNoContent,
     Get,
     JSON,
     Post,
@@ -53,8 +54,8 @@ type API =
              :> ( ReqBody '[JSON] (Credential License)
                     :> PostNoContent
                     :<|> Get '[JSON] (Results LicenseData)
+                    :<|> Capture "connectionId" String :> DeleteNoContent
                 )
-                -- TODO: revoke license
        )
     :<|> Raw
 

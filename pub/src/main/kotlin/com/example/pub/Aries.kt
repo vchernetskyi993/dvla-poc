@@ -9,6 +9,7 @@ import org.hyperledger.acy_py.generated.model.DIDEndpoint
 import org.hyperledger.acy_py.generated.model.IndyProofReqPredSpec.PTypeEnum.LESS_THAN_OR_EQUAL_TO
 import org.hyperledger.aries.api.present_proof.PresentProofRequest
 import org.hyperledger.aries.api.present_proof.PresentProofRequest.ProofRequest
+import org.hyperledger.aries.api.present_proof.PresentProofRequest.ProofRequest.ProofNonRevoked
 import org.hyperledger.aries.api.present_proof.PresentProofRequest.ProofRequest.ProofRequestedAttributes
 import org.hyperledger.aries.api.present_proof.PresentProofRequest.ProofRequest.ProofRequestedPredicates
 import org.hyperledger.aries.api.present_proof.PresentationExchangeRecord
@@ -42,6 +43,9 @@ fun RouteBuilder.configureAries() {
                             restrictions = listOf(schemaRestriction)
                         }
                     )
+                    nonRevoked = ProofNonRevoked().apply {
+                        to = System.currentTimeMillis() / 1000
+                    }
                 }
             }
         }

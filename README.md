@@ -64,3 +64,5 @@ docker build . -t bcgovimages/tails-server -f docker/Dockerfile.tails-server
 
 5. Go to Pub UI at `localhost:8013`. Generate proof request and scan it with Bifold.
    You should be able to prove your name and age using fresh driver license.
+
+6. To revoke license issue: `curl -i -X DELETE localhost:8002/api/licenses/e291815e-c58d-4d36-90ed-6a6cc63c23ca`. Use previous `connectionId`. After this you could try to prove your age one more time, but it should not be possible since credential is revoked.

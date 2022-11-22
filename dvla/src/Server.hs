@@ -12,7 +12,7 @@ import Api
     License (License, category, firstName, lastName),
     LicenseData (LicenseData, connectionId),
     Message (Message, connectionId),
-    Results,
+    Results (Results),
     Revocation (Revocation, id),
     dateOfBirth,
     license,
@@ -36,7 +36,8 @@ import FrameworkClient
     CredentialDefinitionIds (ids),
     CredentialOffer (CredentialOffer, connectionId, credentialPreview, definitionId),
     CredentialPreview (CredentialPreview, attributes),
-    CredentialRecord (CredentialRecord, attributes, connectionId),
+    CredentialRecord (CredentialRecord, attributes, connectionId, revocationId, revocationRegistryId),
+    RevokeRequest (RevokeRequest, connectionId, revocationId, revocationRegistryId),
     Schema (Schema, attributes, name, version),
     SchemaId (SchemaId, schemaId),
     SendMessageBody (SendMessageBody, content),
@@ -47,8 +48,9 @@ import FrameworkClient
     fetchDefinitionIds,
     getConnections,
     issueCredential,
-    revocationId,
-    revocationRegistryId,
+    notify,
+    publish,
+    revokeCredential,
     sendMessage,
   )
 import Servant
@@ -75,6 +77,7 @@ server client =
       :<|> generateLicenseSchema client
       :<|> issueLicense client
       :<|> fetchLicenses client
+      :<|> revokeLicense client
   )
     :<|> serveDirectoryFileServer "ui/build"
 
@@ -135,6 +138,28 @@ fetchLicenses client = do
   credentials <- performFrameworkRequest client fetchCredentials
 
   return $ toLicenseData <$> credentials
+
+revokeLicense :: ClientEnv -> String -> Handler NoContent
+revokeLicense client connectionId' = do
+  Results credentials <- performFrameworkRequest client fetchCredentials
+  let CredentialRecord
+        { revocationId = revocationId',
+          revocationRegistryId = revocationRegistryId'
+        } =
+          head $
+            filter
+              (\CredentialRecord {connectionId = cid} -> cid == connectionId')
+              credentials
+
+  performFrameworkRequest client $
+    revokeCredential
+      RevokeRequest
+        { connectionId = connectionId',
+          revocationId = revocationId',
+          revocationRegistryId = revocationRegistryId',
+          notify = True,
+          publish = True
+        }
 
 toLicenseData :: CredentialRecord -> LicenseData
 toLicenseData

@@ -27,6 +27,8 @@ module FrameworkClient
     Attribute (..),
     fetchCredentials,
     CredentialRecord (..),
+    revokeCredential,
+    RevokeRequest (..),
   )
 where
 
@@ -94,6 +96,10 @@ type API =
              :> PostNoContent
              :<|> "records" :> Get '[JSON] (Results CredentialRecord)
          )
+    :<|> "revocation"
+      :> "revoke"
+      :> ReqBody '[JSON] RevokeRequest
+      :> PostNoContent
 
 newtype SendMessageBody = SendMessageBody
   { content :: String
@@ -142,10 +148,12 @@ createDefinition :: CredentialDefinition -> ClientM NoContent
 fetchDefinitionIds :: ClientM CredentialDefinitionIds
 issueCredential :: CredentialOffer -> ClientM NoContent
 fetchCredentials :: ClientM (Results CredentialRecord)
+revokeCredential :: RevokeRequest -> ClientM NoContent
 ( (createInvitation :<|> getConnections :<|> sendMessage)
     :<|> createSchema
     :<|> (createDefinition :<|> fetchDefinitionIds)
     :<|> (issueCredential :<|> fetchCredentials)
+    :<|> revokeCredential
   ) = client api
 
 createFrameworkClient :: FrameworkClientConfig -> IO ClientEnv
@@ -279,6 +287,35 @@ instance FromJSON CredentialRecord where
       )
 
 instance FromJSON (Results CredentialRecord)
+
+data RevokeRequest = RevokeRequest
+  { connectionId :: !String,
+    -- credentialId :: !String,
+    revocationId :: !String,
+    revocationRegistryId :: !String,
+    notify :: !Bool,
+    publish :: !Bool
+  }
+  deriving (Eq, Show)
+
+instance ToJSON RevokeRequest where
+  toJSON :: RevokeRequest -> Value
+  toJSON
+    RevokeRequest
+      { connectionId = connectionId',
+        revocationId = revocationId',
+        revocationRegistryId = revocationRegistryId',
+        notify = notify',
+        publish = publish'
+      } =
+      object
+        [ "connection_id" .= connectionId',
+          "cred_rev_id" .= revocationId',
+          "notify" .= notify',
+          "notify_version" .= ("v1_0" :: String),
+          "publish" .= publish',
+          "rev_reg_id" .= revocationRegistryId'
+        ]
 
 (.->) :: FromJSON a => Parser Object -> Key -> Parser a
 (.->) parser key = do

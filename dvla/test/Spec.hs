@@ -22,10 +22,12 @@ import Spec.Framework
         createDefinitionTriggered,
         createSchemaTriggered,
         credentialOffers,
-        definitionId
+        definitionId,
+        revocations
       ),
     clientConfig,
     getReceivedMessage,
+    revocations,
     runServer,
   )
 import Spec.Util (getFreePort)
@@ -41,7 +43,7 @@ import Test.Hspec
     it,
     shouldBe,
   )
-import Test.Hspec.Wai (get, getState, post, request, shouldRespondWith)
+import Test.Hspec.Wai (delete, get, getState, post, request, shouldRespondWith)
 import Test.Hspec.Wai.JSON (json)
 
 main :: IO ()
@@ -161,9 +163,9 @@ spec =
                           ],
                       "auto_issue" .= True
                     ]
-          
+
           describe "GET /api/licenses" $
-            it "should fetch driver licenses" $ do
+            it "should fetch driver licenses" $
               get "/api/licenses"
                 `shouldRespondWith` [json|{
                 results: [
@@ -182,7 +184,31 @@ spec =
                   }
                 ]
               }|]
-              
+
+          describe "DELETE /api/licenses/{connectionId}" $
+            it "should revoke driver license" $ do
+              -- when
+              delete "/api/licenses/3333445566" `shouldRespondWith` 204
+
+              -- then
+              state <- getState
+
+              actualRevocations <-
+                liftIO $
+                  readMVar $
+                    revocations state
+              liftIO $ length actualRevocations `shouldBe` 1
+
+              liftIO $
+                head actualRevocations
+                  `shouldBe` object
+                    [ "connection_id" .= ("3333445566" :: String),
+                      "cred_rev_id" .= ("1" :: String),
+                      "notify" .= True,
+                      "notify_version" .= ("v1_0" :: String),
+                      "publish" .= True,
+                      "rev_reg_id" .= ("qwetrtyui" :: String)
+                    ]
 
 withFramework :: ActionWith (Int, State) -> ActionWith (Int, State)
 withFramework action (port, state) =
@@ -206,6 +232,7 @@ initialState =
     <*> newMVar 0
     <*> nextRandom
     <*> newMVar []
+    <*> newMVar []
 
 resetState :: (Int, State) -> IO ()
 resetState
@@ -213,10 +240,12 @@ resetState
     State
       { createSchemaTriggered = createSchemaTriggered',
         createDefinitionTriggered = createDefinitionTriggered',
-        credentialOffers = credentialOffers'
+        credentialOffers = credentialOffers',
+        revocations = revocations'
       }
     ) =
     void $
       swapMVar createSchemaTriggered' 0
         >> swapMVar createDefinitionTriggered' 0
         >> swapMVar credentialOffers' []
+        >> swapMVar revocations' []
