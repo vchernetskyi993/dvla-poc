@@ -4,7 +4,8 @@ Personal learning POC project to practice DIDs and Hyperledger Aries. No product
 
 ## Overview
 
-<!-- TODO: add diagram -->
+![diagram](./diagram.png)
+[Excalidraw source](./diagram.excalidraw)
 
 ### Players:
 
@@ -14,7 +15,7 @@ Personal learning POC project to practice DIDs and Hyperledger Aries. No product
 
 2. Alice
 
-   - receives and hold her driver license
+   - receives and holds her driver license
 
 3. Pub
 
